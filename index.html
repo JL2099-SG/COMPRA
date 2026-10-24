@@ -1,0 +1,590 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>La compra de casa</title>
+<meta name="description" content="Lista de la compra compartida de casa">
+<meta name="theme-color" content="#1f6b4a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#111814" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Compra">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Una columna estrecha. Modo Marcar = catálogo en fichas por pasillo; modo Comprar = solo lo marcado, con el carro al final. */
+:root{
+  --bg:#eef3ef; --paper:#ffffff; --ink:#18261e; --muted:#5a6b60; --line:#d5e0d8;
+  --accent:#1f6b4a; --accent-ink:#ffffff; --accent-soft:#dcefe4; --mark:#ffe36e; --danger:#b3261e;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",-apple-system,"Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#111814; --paper:#18221c; --ink:#e6efe8; --muted:#9db0a3; --line:#2a3a30;
+  --accent:#5cc492; --accent-ink:#0d1a13; --accent-soft:#1f3529; --mark:#8a7a1f; --danger:#ff8a80; color-scheme:dark}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45;
+  -webkit-tap-highlight-color:transparent;
+  padding-top:calc(20px + env(safe-area-inset-top,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-bottom:calc(96px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1.05;margin:0;text-wrap:balance;letter-spacing:-.01em}
+.summary{color:var(--muted);margin:6px 0 0;font-variant-numeric:tabular-nums}
+.summary b{color:var(--ink);background:linear-gradient(transparent 55%,var(--mark) 55%);padding:0 2px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+button{touch-action:manipulation}
+
+.menu-btn{flex:none;font:inherit;font-weight:700;font-size:.9rem;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.menu-btn svg{width:18px;height:18px}
+
+.status{font-size:.88rem;border-radius:10px;padding:8px 12px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+
+.tabs{display:grid;grid-template-columns:1fr 1fr;background:var(--paper);border:1px solid var(--line);border-radius:12px;padding:4px;gap:4px}
+.tabs button{font:inherit;font-weight:700;border:0;border-radius:9px;padding:10px;background:transparent;color:var(--muted);cursor:pointer;font-variant-numeric:tabular-nums}
+.tabs button[aria-selected="true"]{background:var(--accent);color:var(--accent-ink)}
+
+.tools{display:flex;gap:8px;align-items:center}
+.search{flex:1;min-width:0;font:inherit;font-size:16px;color:var(--ink);background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.ghost{font:inherit;font-size:.9rem;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:9px 12px;cursor:pointer;white-space:nowrap}
+.ghost[aria-pressed="true"]{border-color:var(--danger);color:var(--danger)}
+.hint{font-size:.88rem;color:var(--muted);margin:-6px 0 0}
+
+form.add{display:grid;grid-template-columns:1fr auto;gap:8px;background:var(--paper);border:1px dashed var(--accent);border-radius:12px;padding:10px}
+form.add p{grid-column:1/-1;margin:0;font-size:.95rem}
+form.add select{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:9px 10px;min-width:0}
+form.add button{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:10px;padding:9px 16px;cursor:pointer}
+
+section h2{font-family:var(--display);font-weight:600;font-size:.85rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0 0 8px;display:flex;justify-content:space-between;gap:8px}
+section h2 .n{font-variant-numeric:tabular-nums;color:var(--accent)}
+
+.chips{display:flex;flex-wrap:wrap;gap:7px}
+.chip{font:inherit;font-size:.95rem;line-height:1.2;background:var(--paper);color:var(--ink);border:1.5px solid var(--line);border-radius:999px;padding:8px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;max-width:100%;overflow-wrap:anywhere;text-align:left}
+.chip:disabled{cursor:default;opacity:.6}
+.chip.on{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.chip.on::before{content:"";width:6px;height:11px;border:solid currentColor;border-width:0 2.5px 2.5px 0;transform:translateY(-2px) rotate(45deg);flex:none}
+.chip.cart{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--muted);text-decoration:line-through}
+.chip.mine{border-style:dashed}
+.editing .chip{border-color:var(--danger);border-style:dashed}
+.editing .chip::after{content:"×";font-size:1.1rem;line-height:1;color:var(--danger)}
+.editing .chip.on::after{color:var(--accent-ink)}
+@media (hover:hover){.chip:not(:disabled):hover{border-color:var(--accent)}}
+
+ul{list-style:none;margin:0;padding:0;background:var(--paper);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+ul li{display:flex;align-items:center;gap:12px;padding:10px 12px;border-top:1px solid var(--line)}
+ul li:first-child{border-top:0}
+.tick{flex:none;width:30px;height:30px;border-radius:50%;border:2px solid var(--accent);background:transparent;cursor:pointer;display:grid;place-items:center;padding:0}
+.done .tick{background:var(--accent)}
+.done .tick::after{content:"";width:8px;height:14px;border:solid var(--accent-ink);border-width:0 3px 3px 0;transform:translateY(-2px) rotate(45deg)}
+.name{flex:1;min-width:0;overflow-wrap:anywhere}
+.done .name{text-decoration:line-through;color:var(--muted)}
+.who{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.del{flex:none;background:none;border:0;color:var(--muted);font-size:1.4rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
+.cart-sec h2{color:var(--accent)}
+.clear{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.clear button{font:inherit;font-size:.9rem;border-radius:10px;padding:9px 14px;cursor:pointer;border:1px solid var(--line);background:var(--paper);color:var(--ink)}
+.clear .danger{background:var(--danger);color:var(--paper);border-color:var(--danger)}
+
+.empty,.notice{background:var(--paper);border:1px dashed var(--line);border-radius:14px;padding:16px;color:var(--muted)}
+.notice{border-style:solid;border-color:var(--accent);background:var(--accent-soft);color:var(--ink)}
+.notice.err{border-color:var(--danger)}
+.linkish{font:inherit;font-size:.9rem;background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start}
+
+.bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:linear-gradient(transparent,var(--bg) 35%);
+  padding:20px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
+.bar button{display:block;width:100%;max-width:560px;margin:0 auto;font:inherit;font-weight:700;font-size:1.05rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:15px;cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.15)}
+
+/* Pantallas de bienvenida y ajustes */
+.card{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:12px}
+.card h2{font-family:var(--display);font-size:1.2rem;margin:0}
+.card p{margin:0;color:var(--muted)}
+.primary{font:inherit;font-weight:700;background:var(--accent);color:var(--accent-ink);border:0;border-radius:12px;padding:13px 16px;cursor:pointer;width:100%}
+.secondary{font:inherit;font-weight:700;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:12px;padding:12px 16px;cursor:pointer;width:100%}
+.field{display:grid;gap:6px}
+.field label{font-size:.9rem;font-weight:700}
+.field input,.field textarea{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.field textarea{min-height:72px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.small{font-size:.85rem;color:var(--muted)}
+ol.steps{margin:0;padding-left:1.2em;color:var(--ink);display:grid;gap:4px}
+
+dialog{border:0;padding:0;background:transparent;color:var(--ink);width:min(560px,100% - 24px);max-height:calc(100dvh - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+dialog .card{max-height:calc(100dvh - 24px);overflow:auto}
+.dlg-head{display:flex;justify-content:space-between;align-items:center}
+.x{font:inherit;font-size:1.5rem;line-height:1;background:none;border:0;color:var(--muted);cursor:pointer;padding:4px 8px}
+hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+@media (prefers-reduced-motion:no-preference){.chip,ul li{transition:background .15s,border-color .15s}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>La compra de casa</h1>
+      <p class="summary" id="summary">Cargando…</p>
+    </div>
+    <button class="menu-btn" id="menuBtn" type="button" hidden aria-haspopup="dialog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></svg>
+      Compartir
+    </button>
+  </header>
+
+  <div class="status" id="status" hidden></div>
+  <div class="notice" id="notice" hidden></div>
+
+  <!-- Bienvenida: sin lista en este dispositivo -->
+  <div id="welcome" hidden>
+    <div class="card">
+      <h2>Empezar</h2>
+      <p>Si te han mandado un enlace a la lista, pégalo aquí para unirte. Si eres quien la crea, pulsa «Crear la lista de casa».</p>
+      <div class="field">
+        <label for="joinInput">Enlace o código de la lista</label>
+        <textarea id="joinInput" placeholder="Pega aquí el enlace que te mandaron"></textarea>
+      </div>
+      <div class="row2">
+        <button class="secondary" id="pasteBtn" type="button">Pegar</button>
+        <button class="primary" id="joinBtn" type="button">Unirme</button>
+      </div>
+      <p class="small" id="joinMsg" hidden></p>
+      <hr>
+      <button class="secondary" id="createBtn" type="button">Crear la lista de casa</button>
+    </div>
+  </div>
+
+  <!-- Aplicación -->
+  <div id="app" hidden style="display:flex;flex-direction:column;gap:18px">
+    <div class="tabs" role="tablist">
+      <button id="tabMark" role="tab" aria-selected="true">Marcar lo que falta</button>
+      <button id="tabShop" role="tab" aria-selected="false">Comprar</button>
+    </div>
+
+    <div id="markTools">
+      <div class="tools">
+        <input id="q" class="search" type="search" placeholder="Buscar o añadir un producto" maxlength="60" aria-label="Buscar producto" autocomplete="off" enterkeyhint="search">
+        <button id="editBtn" class="ghost" type="button" aria-pressed="false">Editar</button>
+      </div>
+    </div>
+    <p class="hint" id="hint">Toca lo que falte. Vuelve a tocar para desmarcar.</p>
+
+    <form class="add" id="addForm" hidden autocomplete="off">
+      <p id="addLabel"></p>
+      <select id="aisle" aria-label="Pasillo"></select>
+      <button type="submit">Añadir y marcar</button>
+    </form>
+
+    <div id="list"></div>
+  </div>
+</div>
+
+<div class="bar" id="bar" hidden><button id="goShop" type="button"></button></div>
+
+<dialog id="menu" aria-labelledby="menuTitle">
+  <div class="card">
+    <div class="dlg-head"><h2 id="menuTitle">Compartir y ajustes</h2><button class="x" id="menuClose" type="button" aria-label="Cerrar">×</button></div>
+    <p>Quien tenga el enlace puede ver y cambiar la lista. Mándalo solo a la gente de casa.</p>
+    <button class="primary" id="shareBtn" type="button">Compartir por WhatsApp…</button>
+    <button class="secondary" id="copyBtn" type="button">Copiar enlace</button>
+    <p class="small" id="shareMsg" hidden></p>
+    <hr>
+    <div class="field">
+      <label for="nameInput">Tu nombre en este móvil (opcional)</label>
+      <input id="nameInput" maxlength="20" placeholder="Para saber quién apuntó cada cosa" autocomplete="given-name">
+    </div>
+    <hr>
+    <p class="small"><b>Instalarla en el iPhone:</b></p>
+    <ol class="steps small">
+      <li>Abre el enlace en Safari.</li>
+      <li>Botón Compartir (cuadrado con flecha) → «Añadir a pantalla de inicio».</li>
+      <li>Ábrela desde el icono. Si te pide el enlace, pégalo una vez.</li>
+    </ol>
+    <hr>
+    <button class="linkish" id="leaveBtn" type="button">Usar otra lista en este móvil</button>
+  </div>
+</dialog>
+
+<script type="module">
+import { firebaseConfig } from "./config.js";
+
+const FB = "https://www.gstatic.com/firebasejs/12.19.0/";
+const $ = id => document.getElementById(id);
+
+const AISLES = [
+  ["fruta","Fruta y verdura"],["fresco","Carne, pescado y charcutería"],["lacteos","Lácteos y huevos"],
+  ["panaderia","Pan y desayuno"],["despensa","Despensa"],["congelados","Congelados"],
+  ["bebidas","Bebidas"],["limpieza","Limpieza y hogar"],["higiene","Higiene personal"],["otros","Otros"]
+];
+const AISLE_NAME = Object.fromEntries(AISLES);
+const BASE = {
+  fruta:["Tomates","Lechuga","Cebollas","Ajos","Patatas","Zanahorias","Pimientos rojos","Pimientos verdes","Calabacín","Berenjenas","Pepinos","Brócoli","Espinacas","Judías verdes","Champiñones","Aguacates","Limones","Naranjas","Mandarinas","Manzanas","Peras","Plátanos","Fresas","Uvas","Kiwis","Melón","Sandía","Piña","Perejil"],
+  fresco:["Pechugas de pollo","Muslos de pollo","Pollo entero","Carne picada","Filetes de ternera","Lomo de cerdo","Costillas","Hamburguesas","Salchichas","Salmón","Merluza","Bacalao","Gambas","Jamón serrano","Jamón cocido","Pavo en lonchas","Chorizo","Bacon"],
+  lacteos:["Leche","Huevos","Yogures naturales","Yogures de sabores","Mantequilla","Nata para cocinar","Queso en lonchas","Queso curado","Queso fresco","Queso rallado","Bebida vegetal","Postres lácteos"],
+  panaderia:["Pan","Pan de molde","Tostadas","Cereales","Galletas","Café","Cápsulas de café","Té e infusiones","Cacao en polvo","Mermelada","Miel","Bollería"],
+  despensa:["Aceite de oliva","Aceite de girasol","Vinagre","Sal","Azúcar","Harina","Arroz","Pasta","Garbanzos","Lentejas","Tomate frito","Tomate triturado","Atún en lata","Caldo","Especias","Mayonesa","Ketchup","Aceitunas","Frutos secos","Patatas fritas","Chocolate","Levadura"],
+  congelados:["Guisantes","Verduras congeladas","Pescado congelado","Pizza","Croquetas","Helado","Hielo"],
+  bebidas:["Agua","Agua con gas","Zumo","Refrescos","Cerveza","Cerveza sin alcohol","Vino tinto","Vino blanco"],
+  limpieza:["Papel higiénico","Papel de cocina","Servilletas","Pastillas lavavajillas","Jabón de fregar","Detergente ropa","Suavizante","Lejía","Limpiador multiusos","Friegasuelos","Bolsas de basura","Estropajos","Bayetas","Papel de aluminio","Film transparente","Pilas"],
+  higiene:["Gel de ducha","Champú","Acondicionador","Pasta de dientes","Cepillos de dientes","Desodorante","Crema hidratante","Protector solar","Toallitas","Pañuelos","Bastoncillos","Compresas","Maquinillas"]
+};
+/* Lo que estaba marcado en la versión anterior (Claude) al crear esta: se carga solo al crear la lista nueva. */
+const SEED = [
+  ["Tomates","fruta"],["Patatas","fruta"],["Carne picada","fresco"],["Bacon","fresco"],
+  ["Plátanos","fruta"],["Cebollas","fruta"],["Papel higiénico","limpieza"],["Bolsas de basura","limpieza"]
+];
+
+/* ---------- utilidades ---------- */
+const norm = s => s.trim().replace(/\s+/g," ").toLocaleLowerCase("es");
+const fold = s => norm(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
+const slug = s => fold(s).replace(/[^a-z0-9]+/g,"-").replace(/^-|-$/g,"").slice(0,60) || "x";
+const cap = s => s.charAt(0).toLocaleUpperCase("es") + s.slice(1);
+const store = {
+  get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+  set(k,v){ try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k,v); } catch(e){} }
+};
+const KEY_RE = /^[a-z0-9]{20,64}$/;
+function newKey(){
+  const abc = "abcdefghjkmnpqrstuvwxyz23456789", r = new Uint8Array(24);
+  crypto.getRandomValues(r);
+  return [...r].map(b => abc[b % abc.length]).join("");
+}
+function keyFrom(text){
+  if (!text) return null;
+  const t = text.trim();
+  const m = t.match(/[?#&]lista=([a-z0-9]{20,64})/i);
+  if (m) return m[1].toLowerCase();
+  const bare = t.toLowerCase().replace(/[^a-z0-9]/g,"");
+  return KEY_RE.test(bare) ? bare : null;
+}
+function shareUrl(key){
+  const u = new URL(location.href);
+  u.hash = ""; u.search = "?lista=" + key;
+  return u.toString();
+}
+
+/* ---------- estado ---------- */
+let F = null, fs = null, listKey = null, unsub = [];
+let items = [], extra = [], canWrite = true, confirmClear = false, editing = false, ready = false;
+let mode = store.get("compra.mode") === "shop" ? "shop" : "mark";
+let me = store.get("compra.nombre") || "";
+
+$("aisle").innerHTML = AISLES.map(([k,v]) => `<option value="${k}">${v}</option>`).join("");
+
+function notice(text, err){ $("notice").textContent = text || ""; $("notice").hidden = !text; $("notice").classList.toggle("err", !!err); }
+function updateStatus(){
+  const off = !navigator.onLine;
+  $("status").hidden = !off || !listKey;
+  $("status").textContent = "Sin conexión. Puedes seguir marcando: los cambios se guardan en el móvil y se envían solos al volver la cobertura.";
+}
+addEventListener("online", updateStatus); addEventListener("offline", updateStatus);
+
+/* Escrituras: no se esperan (sin cobertura quedan en cola y se envían solas). */
+function write(promise){
+  Promise.resolve(promise).catch(e => {
+    if (e && e.code === "permission-denied") { canWrite = false; notice("Este enlace no da acceso a la lista. Pide de nuevo el enlace a quien la comparte.", true); render(); }
+    else notice("No se pudo guardar el cambio. Revisa la conexión y vuelve a intentarlo.", true);
+  });
+}
+const ref = (col, id) => F.doc(fs, "listas", listKey, col, id);
+
+/* ---------- catálogo ---------- */
+function catalog(){
+  const map = new Map();
+  for (const [a, names] of Object.entries(BASE)) for (const n of names) map.set(fold(n), {name:n, aisle:a, base:true});
+  for (const c of extra) {
+    const k = fold(c.name), e = map.get(k);
+    if (c.hidden) { if (e) e.hidden = true; }
+    else if (!e) map.set(k, {name:c.name, aisle: AISLE_NAME[c.aisle] ? c.aisle : "otros", mine:true, docId:c.id});
+  }
+  for (const it of items) {
+    const k = fold(it.name);
+    if (!map.has(k)) map.set(k, {name:it.name, aisle: AISLE_NAME[it.aisle] ? it.aisle : "otros", adhoc:true});
+  }
+  return map;
+}
+function itemByKey(){ const m = new Map(); for (const it of items) m.set(fold(it.name), it); return m; }
+
+function mark(entry){
+  if (!fs || !canWrite) return;
+  const it = itemByKey().get(fold(entry.name));
+  if (it) return write(F.deleteDoc(ref("items", it.id)));
+  write(F.setDoc(ref("items", "p-" + slug(entry.name)), {
+    name: entry.name, aisle: entry.aisle, done:false, addedBy: me || null, createdAt: Date.now()
+  }));
+}
+function removeFromCatalog(entry){
+  if (!fs || !canWrite) return;
+  if (entry.mine) return write(F.deleteDoc(ref("catalogo", entry.docId)));
+  if (entry.base) return write(F.setDoc(ref("catalogo", "h-" + slug(entry.name)), {name: entry.name, hidden:true, createdAt: Date.now()}));
+}
+
+$("addForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = cap($("q").value.trim().replace(/\s+/g," ")).slice(0,60);
+  if (!name || !fs || !canWrite) return;
+  const aisle = $("aisle").value;
+  write(F.setDoc(ref("catalogo", "c-" + slug(name)), {name, aisle, createdAt: Date.now()}));
+  mark({name, aisle});
+  $("q").value = ""; $("q").blur(); render();
+});
+$("q").addEventListener("input", render);
+$("editBtn").onclick = () => { editing = !editing; render(); };
+$("tabMark").onclick = () => setMode("mark");
+$("tabShop").onclick = () => setMode("shop");
+$("goShop").onclick = () => { setMode("shop"); scrollTo(0,0); };
+function setMode(m){ mode = m; confirmClear = false; store.set("compra.mode", m); render(); }
+
+/* ---------- pintar ---------- */
+function renderMark(box){
+  const cat = catalog(), have = itemByKey(), q = fold($("q").value || "");
+  let shown = 0, hiddenCount = 0;
+  for (const [key, label] of AISLES) {
+    const group = [...cat.entries()].filter(([k,e]) => e.aisle === key)
+      .filter(([k,e]) => { if (e.hidden && !have.has(k)) { hiddenCount++; return false; } return true; })
+      .filter(([k]) => !q || k.includes(q));
+    if (!group.length) continue;
+    shown += group.length;
+    const marked = group.filter(([k]) => have.has(k)).length;
+    const s = document.createElement("section");
+    s.innerHTML = `<h2><span></span><span class="n"></span></h2>`;
+    s.querySelector("span").textContent = label;
+    s.querySelector(".n").textContent = marked ? marked + " marcado" + (marked > 1 ? "s" : "") : "";
+    const wrap = document.createElement("div"); wrap.className = "chips" + (editing ? " editing" : "");
+    for (const [k, e] of group) {
+      const it = have.get(k);
+      const b = document.createElement("button"); b.type = "button";
+      b.className = "chip" + (it ? (it.done ? " cart" : " on") : "") + (e.mine ? " mine" : "");
+      b.textContent = e.name; b.disabled = !canWrite || !fs;
+      if (editing) {
+        b.disabled = b.disabled || e.adhoc;
+        b.setAttribute("aria-label", "Quitar del catálogo: " + e.name);
+        b.onclick = () => removeFromCatalog(e);
+      } else {
+        b.setAttribute("aria-pressed", it && !it.done ? "true" : "false");
+        b.onclick = () => mark(e);
+      }
+      wrap.append(b);
+    }
+    s.append(wrap); box.append(s);
+  }
+  const exact = q && cat.has(q);
+  $("addForm").hidden = !(q && !exact && canWrite && fs);
+  if (!$("addForm").hidden) $("addLabel").textContent = `«${cap($("q").value.trim())}» no está en el catálogo. Elige pasillo:`;
+  if (q && !shown) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.textContent = "No hay nada con ese nombre en el catálogo.";
+    box.append(e);
+  }
+  if (editing) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.style.display = "grid"; e.style.gap = "8px";
+    e.append("Toca un producto para quitarlo del catálogo. No afecta a la lista de hoy.");
+    if (hiddenCount) {
+      const r = document.createElement("button"); r.className = "linkish"; r.type = "button";
+      r.textContent = `Recuperar ${hiddenCount} producto${hiddenCount > 1 ? "s" : ""} quitado${hiddenCount > 1 ? "s" : ""}`;
+      r.onclick = () => { const b = F.writeBatch(fs); extra.filter(c => c.hidden).forEach(c => b.delete(ref("catalogo", c.id))); write(b.commit()); };
+      e.append(r);
+    }
+    box.prepend(e);
+  }
+}
+
+function row(it){
+  const li = document.createElement("li");
+  if (it.done) li.className = "done";
+  const t = document.createElement("button");
+  t.className = "tick"; t.disabled = !canWrite;
+  t.setAttribute("aria-label", (it.done ? "Devolver a la lista: " : "Meter en el carro: ") + it.name);
+  t.onclick = () => write(F.updateDoc(ref("items", it.id), {done: !it.done}));
+  const n = document.createElement("span"); n.className = "name"; n.textContent = it.name;
+  li.append(t, n);
+  if (it.addedBy) { const w = document.createElement("span"); w.className = "who"; w.textContent = it.addedBy === me ? "tú" : it.addedBy; li.append(w); }
+  if (canWrite) {
+    const d = document.createElement("button");
+    d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", "Quitar " + it.name);
+    d.onclick = () => write(F.deleteDoc(ref("items", it.id)));
+    li.append(d);
+  }
+  return li;
+}
+
+function renderShop(box, pending, cart){
+  if (!items.length) {
+    const e = document.createElement("div"); e.className = "empty";
+    e.textContent = "No hay nada marcado. Pasa a «Marcar lo que falta» y toca los productos.";
+    box.append(e);
+  }
+  for (const [key, label] of AISLES) {
+    const group = pending.filter(i => (AISLE_NAME[i.aisle] ? i.aisle : "otros") === key);
+    if (!group.length) continue;
+    const s = document.createElement("section");
+    s.innerHTML = `<h2><span></span><span class="n"></span></h2>`;
+    s.querySelector("span").textContent = label; s.querySelector(".n").textContent = group.length;
+    const ul = document.createElement("ul"); group.forEach(i => ul.append(row(i)));
+    s.append(ul); box.append(s);
+  }
+  if (cart.length) {
+    const s = document.createElement("section"); s.className = "cart-sec";
+    s.innerHTML = `<h2><span>En el carro</span><span class="n">${cart.length}</span></h2>`;
+    const ul = document.createElement("ul"); cart.forEach(i => ul.append(row(i)));
+    s.append(ul);
+    if (canWrite) {
+      const c = document.createElement("div"); c.className = "clear";
+      if (!confirmClear) {
+        const b = document.createElement("button"); b.textContent = "Ya está comprado: vaciar el carro";
+        b.onclick = () => { confirmClear = true; render(); };
+        c.append(b);
+      } else {
+        const y = document.createElement("button"); y.className = "danger"; y.textContent = `Sí, quitar ${cart.length}`;
+        y.onclick = () => { confirmClear = false; const b = F.writeBatch(fs); cart.forEach(i => b.delete(ref("items", i.id))); write(b.commit()); };
+        const n = document.createElement("button"); n.textContent = "Cancelar";
+        n.onclick = () => { confirmClear = false; render(); };
+        c.append(y, n);
+      }
+      s.append(c);
+    }
+    box.append(s);
+  }
+}
+
+function render(){
+  if (!listKey) return;
+  const pending = items.filter(i => !i.done), cart = items.filter(i => i.done);
+  $("summary").innerHTML = !ready ? "Cargando la lista…"
+    : items.length ? `<b>${pending.length}</b> por comprar · ${cart.length} en el carro`
+    : "Nada marcado todavía. Lo que marque cualquiera de casa aparece al momento.";
+  $("tabMark").setAttribute("aria-selected", mode === "mark");
+  $("tabShop").setAttribute("aria-selected", mode === "shop");
+  $("tabShop").textContent = pending.length ? `Comprar · ${pending.length}` : "Comprar";
+  $("markTools").hidden = mode !== "mark";
+  $("hint").hidden = mode !== "mark" || editing || !canWrite;
+  $("editBtn").hidden = !canWrite || !fs;
+  $("editBtn").setAttribute("aria-pressed", editing);
+  $("editBtn").textContent = editing ? "Hecho" : "Editar";
+  if (mode !== "mark") $("addForm").hidden = true;
+  $("bar").hidden = !(mode === "mark" && pending.length && !editing);
+  $("goShop").textContent = `Ver lista de la compra · ${pending.length}`;
+  const box = document.createElement("div");
+  box.style.cssText = "display:flex;flex-direction:column;gap:18px";
+  if (mode === "mark") renderMark(box); else renderShop(box, pending, cart);
+  $("list").replaceChildren(box);
+}
+
+/* ---------- conexión a la lista ---------- */
+function openList(key){
+  unsub.forEach(u => u()); unsub = [];
+  listKey = key; store.set("compra.lista", key);
+  items = []; extra = []; ready = false; canWrite = true; notice("");
+  $("welcome").hidden = true; $("app").hidden = false; $("menuBtn").hidden = false;
+  updateStatus(); render();
+  const fail = e => {
+    if (e && e.code === "permission-denied") notice("Este enlace no da acceso a la lista. Pide de nuevo el enlace a quien la comparte.", true);
+    else notice("Se ha perdido la conexión con la lista. Cierra y vuelve a abrir la app.", true);
+  };
+  unsub.push(F.onSnapshot(F.query(F.collection(fs, "listas", key, "items"), F.orderBy("createdAt")),
+    snap => { ready = true; items = snap.docs.map(d => ({id: d.id, ...d.data()})); render(); }, fail));
+  unsub.push(F.onSnapshot(F.collection(fs, "listas", key, "catalogo"),
+    snap => { extra = snap.docs.map(d => ({id: d.id, ...d.data()})); render(); }, () => {}));
+}
+
+function showWelcome(msg){
+  unsub.forEach(u => u()); unsub = []; listKey = null;
+  $("app").hidden = true; $("bar").hidden = true; $("menuBtn").hidden = true; $("status").hidden = true;
+  $("welcome").hidden = false;
+  $("summary").textContent = "Lista compartida de casa";
+  $("joinMsg").hidden = !msg; $("joinMsg").textContent = msg || "";
+}
+
+$("pasteBtn").onclick = async () => {
+  try { $("joinInput").value = await navigator.clipboard.readText(); }
+  catch (e) { $("joinMsg").hidden = false; $("joinMsg").textContent = "No he podido leer el portapapeles. Mantén pulsado el recuadro y elige «Pegar»."; }
+};
+$("joinBtn").onclick = () => {
+  const k = keyFrom($("joinInput").value);
+  if (!k) { $("joinMsg").hidden = false; $("joinMsg").textContent = "Ese texto no contiene un enlace de lista válido."; return; }
+  history.replaceState(null, "", shareUrl(k));
+  openList(k);
+};
+$("createBtn").onclick = async () => {
+  const k = newKey();
+  const b = F.writeBatch(fs), now = Date.now();
+  SEED.forEach(([name, aisle], i) => b.set(F.doc(fs, "listas", k, "items", "p-" + slug(name)),
+    {name, aisle, done:false, addedBy: me || null, createdAt: now + i}));
+  write(b.commit());
+  history.replaceState(null, "", shareUrl(k));
+  openList(k);
+  openMenu("Lista creada. Mándale el enlace a quien vaya a usarla contigo.");
+};
+
+/* ---------- menú: compartir y ajustes ---------- */
+function openMenu(msg){
+  $("nameInput").value = me;
+  $("shareMsg").hidden = !msg; $("shareMsg").textContent = msg || "";
+  if (typeof $("menu").showModal === "function") $("menu").showModal(); else $("menu").setAttribute("open","");
+}
+function closeMenu(){ if ($("menu").close) $("menu").close(); else $("menu").removeAttribute("open"); }
+$("menuBtn").onclick = () => openMenu();
+$("menuClose").onclick = closeMenu;
+$("menu").addEventListener("click", e => { if (e.target === $("menu")) closeMenu(); });
+$("nameInput").addEventListener("input", e => { me = e.target.value.trim().slice(0,20); store.set("compra.nombre", me || null); });
+
+const shareText = () => "Lista de la compra de casa. Ábrela en Safari y añádela a la pantalla de inicio: " + shareUrl(listKey);
+$("shareBtn").onclick = async () => {
+  if (navigator.share) {
+    try { await navigator.share({ title: "La compra de casa", text: "Lista de la compra de casa. Ábrela en Safari y añádela a la pantalla de inicio.", url: shareUrl(listKey) }); return; }
+    catch (e) { if (e && e.name === "AbortError") return; }
+  }
+  location.href = "https://wa.me/?text=" + encodeURIComponent(shareText());
+};
+$("copyBtn").onclick = async () => {
+  try { await navigator.clipboard.writeText(shareUrl(listKey)); $("shareMsg").textContent = "Enlace copiado."; }
+  catch (e) { $("shareMsg").textContent = shareUrl(listKey); }
+  $("shareMsg").hidden = false;
+};
+$("leaveBtn").onclick = () => {
+  if (!confirm("¿Dejar de usar esta lista en este móvil? La lista no se borra; podrás volver con el enlace.")) return;
+  store.set("compra.lista", null); history.replaceState(null, "", location.pathname);
+  closeMenu(); showWelcome();
+};
+
+/* ---------- arranque ---------- */
+(async () => {
+  const configured = firebaseConfig && firebaseConfig.projectId && !/PEGA|TU_/i.test(JSON.stringify(firebaseConfig));
+  if (!configured) {
+    $("summary").textContent = "Falta configurar la app";
+    notice("Falta la configuración de Firebase en config.js. Sigue el paso 1 de la guía.", true);
+    return;
+  }
+  try {
+    const [appMod, fsMod] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js")]);
+    F = fsMod;
+    const app = appMod.initializeApp(firebaseConfig);
+    try { fs = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
+    catch (e) { fs = F.getFirestore(app); }
+  } catch (e) {
+    $("summary").textContent = "Sin conexión";
+    notice("No se ha podido cargar la app. Comprueba la conexión y vuelve a abrirla.", true);
+    return;
+  }
+  const params = new URLSearchParams(location.search);
+  const fromUrl = keyFrom("?lista=" + (params.get("lista") || "")) || keyFrom(location.hash);
+  const saved = store.get("compra.lista");
+  const key = fromUrl || (saved && KEY_RE.test(saved) ? saved : null);
+  if (key) { if (!fromUrl) history.replaceState(null, "", shareUrl(key)); openList(key); }
+  else showWelcome();
+})();
+
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>

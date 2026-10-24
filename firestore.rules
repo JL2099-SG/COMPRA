@@ -1,0 +1,30 @@
+rules_version = '2';
+// Reglas de La compra de casa.
+// Solo se puede leer o escribir una lista conociendo su código secreto (va en el enlace).
+// No se pueden listar las listas existentes ni escribir fuera de "items" y "catalogo".
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function listaValida(lista) {
+      return lista.size() >= 20 && lista.size() <= 64;
+    }
+    function nombreValido() {
+      return request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 60;
+    }
+
+    match /listas/{lista}/items/{id} {
+      allow read, delete: if listaValida(lista);
+      allow create, update: if listaValida(lista) && nombreValido()
+        && request.resource.data.keys().hasOnly(['name', 'aisle', 'done', 'addedBy', 'createdAt'])
+        && request.resource.data.aisle is string && request.resource.data.aisle.size() <= 20
+        && request.resource.data.done is bool;
+    }
+
+    match /listas/{lista}/catalogo/{id} {
+      allow read, delete: if listaValida(lista);
+      allow create, update: if listaValida(lista) && nombreValido()
+        && request.resource.data.keys().hasOnly(['name', 'aisle', 'hidden', 'createdAt']);
+    }
+  }
+}
