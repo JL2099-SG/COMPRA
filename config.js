@@ -1,12 +1,11 @@
-// Configuración de Firebase.
-// Sustituye este bloque por el que te da Firebase al registrar la app web
-// (Configuración del proyecto → Tus apps → SDK setup and configuration → Config).
-// Estos datos identifican el proyecto; no son contraseñas.
+// Configuración de Firebase (proyecto compra-casa-13989).
+// Estos datos identifican el proyecto; no son contraseñas. El acceso a los datos
+// lo controlan las reglas de Firestore (firestore.rules).
 export const firebaseConfig = {
-  apiKey: "PEGA_AQUI",
-  authDomain: "PEGA_AQUI",
-  projectId: "PEGA_AQUI",
-  storageBucket: "PEGA_AQUI",
-  messagingSenderId: "PEGA_AQUI",
-  appId: "PEGA_AQUI"
+  apiKey: "AIzaSyBiSbOTHebY6VH2u3F2mrs8EM_UM-9MMrk",
+  authDomain: "compra-casa-13989.firebaseapp.com",
+  projectId: "compra-casa-13989",
+  storageBucket: "compra-casa-13989.firebasestorage.app",
+  messagingSenderId: "1014522773165",
+  appId: "1:1014522773165:web:6e2987646eabe286391024"
 };
