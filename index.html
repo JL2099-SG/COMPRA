@@ -153,7 +153,7 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
   <div id="welcome" hidden>
     <div class="card">
       <h2 data-i18n="start">Empezar</h2>
-      <p data-i18n="startText">Si te han mandado un enlace a la lista, pégalo aquí para unirte. Si eres quien la crea, pulsa «Crear la lista de casa».</p>
+      <p id="startText" data-i18n="startText">Si te han mandado un enlace a la lista, pégalo aquí para unirte. Si eres quien la crea, pulsa «Crear la lista de casa».</p>
       <div class="field">
         <label for="joinInput" data-i18n="joinLabel">Enlace o código de la lista</label>
         <textarea id="joinInput" data-i18n-ph="joinPh" placeholder="Pega aquí el enlace que te mandaron"></textarea>
@@ -202,6 +202,17 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
     <button class="primary" id="shareBtn" type="button" data-i18n="shareWa">Compartir por WhatsApp…</button>
     <button class="secondary" id="copyBtn" type="button" data-i18n="copyLink">Copiar enlace</button>
     <p class="small" id="shareMsg" hidden></p>
+    <p class="small" id="codeLine"></p>
+    <hr>
+    <div class="field">
+      <label for="switchInput" data-i18n="switchLabel">¿Otra lista? Pega aquí su enlace</label>
+      <textarea id="switchInput" data-i18n-ph="joinPh" placeholder="Pega aquí el enlace que te mandaron"></textarea>
+    </div>
+    <div class="row2">
+      <button class="secondary" id="switchPaste" type="button" data-i18n="paste">Pegar</button>
+      <button class="primary" id="switchBtn" type="button" data-i18n="switchBtn">Cambiar a esa lista</button>
+    </div>
+    <p class="small" id="switchMsg" hidden></p>
     <hr>
     <div class="field">
       <label for="nameInput" data-i18n="nameLabel">Tu nombre en este móvil (opcional)</label>
@@ -243,7 +254,12 @@ const STR = {
     nameLabel: "Tu nombre en este móvil (opcional)", namePh: "Para saber quién apuntó cada cosa",
     installTitle: "Instalarla en el iPhone:", install1: "Abre el enlace en Safari.",
     install2: "Botón Compartir (cuadrado con flecha) → «Añadir a pantalla de inicio».",
-    install3: "Ábrela desde el icono. Si te pide el enlace, pégalo una vez.",
+    install3: "Hazlo desde esta misma página: así el icono abre esta lista y no otra.",
+    codeLine: c => `Código de esta lista: …${c}. Debe coincidir en todos los móviles.`,
+    switchLabel: "¿Otra lista? Pega aquí su enlace", switchBtn: "Cambiar a esa lista",
+    sameList: "Ya estás en esa lista.", switched: "Listo: ahora usas esa lista en este móvil.",
+    createConfirm: "¿Crear una lista NUEVA?\n\nSi ya usáis una lista (en Safari o en otro móvil), pulsa Cancelar y pega su enlace arriba. Si creas otra, lo que apuntéis no se verá entre una y otra.",
+    startTextApp: "¿Ya usas la lista en Safari o en otro móvil? Ábrela allí, pulsa Compartir → Copiar enlace y pégalo aquí. Crea una lista nueva solo si no existe ninguna.",
     leave: "Usar otra lista en este móvil",
     leaveConfirm: "¿Dejar de usar esta lista en este móvil? La lista no se borra; podrás volver con el enlace.",
     offline: "Sin conexión. Puedes seguir marcando: los cambios se guardan en el móvil y se envían solos al volver la cobertura.",
@@ -283,7 +299,12 @@ const STR = {
     nameLabel: "Your name on this phone (optional)", namePh: "So everyone knows who added what",
     installTitle: "Install it on the iPhone:", install1: "Open the link in Safari.",
     install2: "Share button (square with arrow) → “Add to Home Screen”.",
-    install3: "Open it from the icon. If it asks for the link, paste it once.",
+    install3: "Do it from this very page, so the icon opens this list and not another one.",
+    codeLine: c => `This list's code: …${c}. It must match on every phone.`,
+    switchLabel: "Another list? Paste its link here", switchBtn: "Switch to that list",
+    sameList: "You're already on that list.", switched: "Done: this phone now uses that list.",
+    createConfirm: "Create a NEW list?\n\nIf you already use a list (in Safari or on another phone), tap Cancel and paste its link above. If you create another one, items won't be shared between them.",
+    startTextApp: "Already using the list in Safari or on another phone? Open it there, tap Share → Copy link and paste it here. Only create a new list if none exists.",
     leave: "Use a different list on this phone",
     leaveConfirm: "Stop using this list on this phone? The list is not deleted; you can come back with the link.",
     offline: "Offline. You can keep marking: changes are saved on the phone and sent automatically when you're back online.",
@@ -405,6 +426,7 @@ let mode = store.get("compra.mode") === "shop" ? "shop" : "mark";
 let me = store.get("compra.nombre") || "";
 let lang = store.get("compra.idioma") === "en" ? "en" : "es";
 let summaryKey = "loading";
+const STANDALONE = navigator.standalone === true || (window.matchMedia && matchMedia("(display-mode: standalone)").matches);
 
 const t = (k, ...a) => { const v = STR[lang][k]; return typeof v === "function" ? v(...a) : v; };
 const label = name => lang === "en" ? (EN[name] || name) : name;
@@ -416,6 +438,8 @@ function applyLang(){
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = t(el.dataset.i18n); });
   document.querySelectorAll("[data-i18n-ph]").forEach(el => { el.placeholder = t(el.dataset.i18nPh); });
   document.querySelectorAll("[data-i18n-aria]").forEach(el => { el.setAttribute("aria-label", t(el.dataset.i18nAria)); });
+  if (STANDALONE) $("startText").textContent = t("startTextApp");
+  if (listKey) $("codeLine").textContent = t("codeLine", listKey.slice(-6).toUpperCase());
   $("langBtn").textContent = t("langBtn"); $("langBtn").setAttribute("aria-label", t("langAria"));
   const sel = $("aisle").value;
   $("aisle").innerHTML = AISLES.map(a => `<option value="${a[0]}">${lang === "en" ? a[2] : a[1]}</option>`).join("");
@@ -666,6 +690,7 @@ $("joinBtn").onclick = () => {
   openList(k);
 };
 $("createBtn").onclick = async () => {
+  if (!confirm(t("createConfirm"))) return;
   const k = newKey();
   const b = F.writeBatch(fs), now = Date.now();
   SEED.forEach(([name, aisle], i) => b.set(F.doc(fs, "listas", k, "items", "p-" + slug(name)),
@@ -680,6 +705,8 @@ $("createBtn").onclick = async () => {
 function openMenu(msg){
   $("nameInput").value = me;
   $("shareMsg").hidden = !msg; $("shareMsg").textContent = msg || "";
+  $("codeLine").textContent = t("codeLine", listKey.slice(-6).toUpperCase());
+  $("switchInput").value = ""; $("switchMsg").hidden = true;
   if (typeof $("menu").showModal === "function") $("menu").showModal(); else $("menu").setAttribute("open","");
 }
 function closeMenu(){ if ($("menu").close) $("menu").close(); else $("menu").removeAttribute("open"); }
@@ -699,6 +726,21 @@ $("copyBtn").onclick = async () => {
   try { await navigator.clipboard.writeText(shareUrl(listKey)); $("shareMsg").textContent = t("copied"); }
   catch (e) { $("shareMsg").textContent = shareUrl(listKey); }
   $("shareMsg").hidden = false;
+};
+$("switchPaste").onclick = async () => {
+  try { $("switchInput").value = await navigator.clipboard.readText(); }
+  catch (e) { $("switchMsg").hidden = false; $("switchMsg").textContent = t("clipFail"); }
+};
+$("switchBtn").onclick = () => {
+  const k = keyFrom($("switchInput").value);
+  $("switchMsg").hidden = false;
+  if (!k) { $("switchMsg").textContent = t("badLink"); return; }
+  if (k === listKey) { $("switchMsg").textContent = t("sameList"); return; }
+  history.replaceState(null, "", shareUrl(k));
+  openList(k);
+  $("switchInput").value = "";
+  $("codeLine").textContent = t("codeLine", k.slice(-6).toUpperCase());
+  $("switchMsg").textContent = t("switched");
 };
 $("leaveBtn").onclick = () => {
   if (!confirm(t("leaveConfirm"))) return;

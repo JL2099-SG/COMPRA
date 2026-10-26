@@ -1,7 +1,7 @@
 // Permite abrir la app sin cobertura (p. ej. dentro del súper).
 // Ficheros propios: primero red (para recibir actualizaciones), si no hay red, copia guardada.
 // Librerías y tipografías externas: copia guardada primero.
-const CACHE = "compra-v1";
+const CACHE = "compra-v2";
 const SHELL = ["./", "index.html", "config.js", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
