@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Clima de casa</title>
+<meta name="description" content="Control de la climatización Airzone de casa">
+<meta name="theme-color" content="#b4472a" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#16120f" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Clima">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+:root{
+  --bg:#f5efe9; --paper:#ffffff; --ink:#241a14; --muted:#6e5f55; --line:#e5d9cf;
+  --heat:#b4472a; --heat-soft:#f6ddd2; --cool:#2a6fb4; --cool-soft:#d6e6f6; --off:#8c7f76;
+  --accent:var(--heat); --accent-soft:var(--heat-soft); --danger:#b3261e;
+  --display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --body:"Atkinson Hyperlegible",-apple-system,"Segoe UI",system-ui,sans-serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#16120f; --paper:#211a16; --ink:#f1e8e1; --muted:#b3a297; --line:#3a2f28;
+  --heat:#ff8a63; --heat-soft:#4a2a1f; --cool:#7db7f0; --cool-soft:#1d3247; --off:#8f8178; --danger:#ff8a80; color-scheme:dark}}
+body.cool{--accent:var(--cool);--accent-soft:var(--cool-soft)}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.4;
+  -webkit-tap-highlight-color:transparent;
+  padding-top:calc(18px + env(safe-area-inset-top,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-bottom:calc(40px + env(safe-area-inset-bottom,0px))}
+.wrap{max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header.top{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+h1{font-family:var(--display);font-weight:800;font-size:2rem;line-height:1.05;margin:0;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:4px 0 0;font-size:.92rem;font-variant-numeric:tabular-nums}
+button{touch-action:manipulation;font:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.pill{flex:none;font-weight:700;font-size:.88rem;background:var(--paper);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 14px}
+.banner{font-size:.9rem;border-radius:12px;padding:10px 12px;background:var(--paper);border:1px solid var(--line);color:var(--muted)}
+.banner.warn{border-color:var(--danger);color:var(--danger)}
+
+.system{background:var(--paper);border:1px solid var(--line);border-radius:16px;padding:12px;display:flex;flex-direction:column;gap:10px}
+.system h2,.sec{font-family:var(--display);font-weight:600;font-size:.8rem;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin:0}
+.modes{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:6px}
+.modes button{font-weight:700;border:1.5px solid var(--line);border-radius:10px;padding:10px 6px;background:transparent;color:var(--ink)}
+.modes button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:#fff}
+.modes button.m3[aria-pressed="true"]{background:var(--heat);border-color:var(--heat)}
+.modes button.m2[aria-pressed="true"]{background:var(--cool);border-color:var(--cool)}
+.modes button.m1[aria-pressed="true"]{background:var(--off);border-color:var(--off)}
+.row{display:flex;gap:8px}
+.ghost{flex:1;font-weight:700;font-size:.92rem;background:transparent;color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px}
+
+.zones{display:flex;flex-direction:column;gap:10px}
+.zone{background:var(--paper);border:1.5px solid var(--line);border-radius:16px;padding:12px 12px 12px 14px;display:grid;grid-template-columns:1fr auto;gap:8px 12px;align-items:center}
+.zone.on{border-color:var(--accent);background:linear-gradient(0deg,var(--paper),var(--paper)) padding-box}
+.zone.on .name::after{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--accent);margin-left:8px;vertical-align:middle}
+.zone .name{font-family:var(--display);font-weight:800;font-size:1.15rem;line-height:1.1}
+.zone .now{color:var(--muted);font-size:.9rem;font-variant-numeric:tabular-nums;margin-top:3px}
+.zone .now b{color:var(--ink);font-size:1.05rem}
+.power{width:58px;height:34px;border-radius:999px;border:0;background:var(--line);position:relative;flex:none}
+.power::after{content:"";position:absolute;top:4px;left:4px;width:26px;height:26px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.power[aria-checked="true"]{background:var(--accent)}
+.power[aria-checked="true"]::after{transform:translateX(24px)}
+.sp{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;gap:10px;border-top:1px solid var(--line);padding-top:8px}
+.sp .lbl{color:var(--muted);font-size:.85rem}
+.stepper{display:flex;align-items:center;gap:6px}
+.stepper button{width:44px;height:40px;border-radius:10px;border:1.5px solid var(--line);background:transparent;color:var(--ink);font-size:1.3rem;font-weight:700;line-height:1}
+.stepper output{min-width:84px;text-align:center;font-family:var(--display);font-weight:800;font-size:1.5rem;font-variant-numeric:tabular-nums}
+.pending{opacity:.65}
+.pending output{color:var(--muted)}
+.zone .err{grid-column:1/-1;color:var(--danger);font-size:.85rem}
+
+dialog{border:0;border-radius:16px;padding:0;max-width:min(520px,calc(100vw - 24px));width:100%;background:var(--paper);color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.dlg{padding:16px;display:flex;flex-direction:column;gap:10px}
+.dlg h2{font-family:var(--display);margin:0;font-size:1.2rem}
+.dlg p,.dlg li{font-size:.92rem;color:var(--muted);margin:0}
+.dlg ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:4px}
+.primary{font-weight:700;background:var(--accent);color:#fff;border:0;border-radius:10px;padding:11px 14px}
+input.code{font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:10px 12px;width:100%}
+.small{font-size:.8rem;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Clima de casa</h1>
+      <p class="sub" id="sub">Cargando…</p>
+    </div>
+    <button class="pill" id="menuBtn" type="button">Ajustes</button>
+  </header>
+
+  <div class="banner" id="banner" hidden></div>
+
+  <section id="welcome" class="system" hidden>
+    <h2>Empezar</h2>
+    <p class="small">Abre aquí el enlace de casa (te llega con el código secreto) o pégalo:</p>
+    <input class="code" id="joinInput" placeholder="Pega el enlace de Clima de casa" autocomplete="off" autocapitalize="off" spellcheck="false">
+    <button class="primary" id="joinBtn" type="button">Entrar</button>
+  </section>
+
+  <section class="system" id="system" hidden>
+    <h2>Modo de toda la casa</h2>
+    <div class="modes" id="modes"></div>
+    <div class="row">
+      <button class="ghost" id="allOff" type="button">Apagar todas las zonas</button>
+    </div>
+  </section>
+
+  <h2 class="sec" id="zonesTitle" hidden>Zonas</h2>
+  <div class="zones" id="zones"></div>
+</div>
+
+<dialog id="menu">
+  <div class="dlg">
+    <h2>Ajustes</h2>
+    <p>Quien tenga el enlace puede manejar la climatización de casa. Compártelo solo con la familia.</p>
+    <div class="row">
+      <button class="ghost" id="shareBtn" type="button">Compartir enlace…</button>
+      <button class="ghost" id="copyBtn" type="button">Copiar enlace</button>
+    </div>
+    <p id="copyMsg" class="small" aria-live="polite"></p>
+    <p><b>Instalar en el iPhone:</b></p>
+    <ol>
+      <li>Abre el enlace en Safari.</li>
+      <li>Botón Compartir → «Añadir a pantalla de inicio».</li>
+      <li>Hazlo desde esta misma página: así el icono ya lleva el código de casa.</li>
+    </ol>
+    <p class="small" id="bridgeInfo"></p>
+    <button class="primary" id="closeMenu" type="button">Cerrar</button>
+  </div>
+</dialog>
+
+<script type="module">
+import { firebaseConfig } from "../config.js";
+
+const FB = "https://www.gstatic.com/firebasejs/12.19.0/";
+const $ = id => document.getElementById(id);
+
+/* Nombres según el orden de la app de Airzone (zona 5 verificada el 10-nov-2026). */
+const ZONAS = { 1: "Salón", 2: "Dormitorio principal", 3: "Irene", 4: "Piano", 5: "Invitados" };
+const MODOS = { 3: "Calor", 2: "Frío", 4: "Ventilar", 5: "Seco", 1: "Parado" };
+const KEY_RE = /^[A-Za-z0-9]{20,64}$/;
+const STALE_S = 150;          // sin noticias del puente durante más de esto = aviso
+const PENDING_MS = 25000;     // tiempo máximo esperando a que el Airzone confirme una orden
+
+let F, db, casa, state = null, updatedAt = null;
+const pending = {};           // zona -> { on?, sp?, at }
+const timers = {};
+
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch (e) { return null; } },
+  set: k => v => { try { v == null ? localStorage.removeItem(k) : localStorage.setItem(k, v); } catch (e) {} }
+};
+const setKey = store.set("clima.casa");
+
+function keyFrom(text) {
+  if (!text) return null;
+  const m = String(text).match(/[?#&]casa=([A-Za-z0-9]{20,64})/) || String(text).trim().match(/^([A-Za-z0-9]{20,64})$/);
+  return m && KEY_RE.test(m[1]) ? m[1] : null;
+}
+const shareUrl = k => location.origin + location.pathname + "?casa=" + k;
+
+function banner(msg, warn) {
+  const b = $("banner");
+  if (!msg) { b.hidden = true; return; }
+  b.textContent = msg; b.hidden = false; b.classList.toggle("warn", !!warn);
+}
+
+function fmtAge(sec) {
+  if (sec < 60) return "hace " + Math.max(1, Math.round(sec)) + " s";
+  if (sec < 3600) return "hace " + Math.round(sec / 60) + " min";
+  return "a las " + updatedAt.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+}
+
+function refreshSub() {
+  if (!updatedAt) { $("sub").textContent = casa ? "Esperando datos del Surface…" : ""; return; }
+  const age = (Date.now() - updatedAt.getTime()) / 1000;
+  $("sub").textContent = "Actualizado " + fmtAge(age);
+  if (state && state.ok === false) banner("El Surface no consigue hablar con el Airzone: " + (state.err || "sin detalle") + ".", true);
+  else if (age > STALE_S) banner("El Surface no da señales desde " + fmtAge(age) + ". Las órdenes se aplicarán cuando vuelva (si no han pasado 10 minutos).", true);
+  else banner(null);
+}
+setInterval(refreshSub, 10000);
+
+/* ---------- pintar ---------- */
+function zoneView(z) {
+  const p = pending[z.id];
+  const on = p && p.on != null ? p.on : !!z.on;
+  const sp = p && p.sp != null ? p.sp : z.sp;
+  return { on, sp, isPending: !!p };
+}
+
+function render() {
+  if (!state || !state.zones) return;
+  const mode = state.mode;
+  document.body.classList.toggle("cool", mode === 2);
+
+  // Modos (solo los que ofrece el sistema)
+  const avail = [...new Set((state.modes || []).map(Number))];
+  const order = [3, 2, 4, 5, 1].filter(m => avail.includes(m));
+  const modes = $("modes");
+  modes.replaceChildren(...order.map(m => {
+    const b = document.createElement("button");
+    b.type = "button"; b.className = "m" + m; b.textContent = MODOS[m] || ("Modo " + m);
+    b.setAttribute("aria-pressed", String(m === mode));
+    b.onclick = () => changeMode(m);
+    return b;
+  }));
+  $("system").hidden = false; $("zonesTitle").hidden = false;
+
+  const box = $("zones");
+  box.replaceChildren(...state.zones.slice().sort((a, b) => a.id - b.id).map(z => {
+    const v = zoneView(z);
+    const el = document.createElement("article");
+    el.className = "zone" + (v.on ? " on" : "") + (v.isPending ? " pending" : "");
+    el.innerHTML = `
+      <div>
+        <div class="name"></div>
+        <div class="now"><b>${z.t.toFixed(1).replace(".", ",")}°</b> · ${z.h}% humedad</div>
+      </div>
+      <button class="power" type="button" role="switch" aria-checked="${v.on}"></button>
+      <div class="sp">
+        <span class="lbl">Consigna</span>
+        <div class="stepper">
+          <button type="button" class="dn" aria-label="Bajar consigna">−</button>
+          <output>${Number(v.sp).toFixed(1).replace(".", ",")}°</output>
+          <button type="button" class="up" aria-label="Subir consigna">+</button>
+        </div>
+      </div>
+      ${z.err ? '<div class="err">El Airzone indica un error en esta zona.</div>' : ""}`;
+    el.querySelector(".name").textContent = ZONAS[z.id] || ("Zona " + z.id);
+    el.querySelector(".power").setAttribute("aria-label", (v.on ? "Apagar " : "Encender ") + (ZONAS[z.id] || "zona"));
+    el.querySelector(".power").onclick = () => setZone(z, { on: !v.on });
+    el.querySelector(".dn").onclick = () => stepSp(z, -0.5);
+    el.querySelector(".up").onclick = () => stepSp(z, +0.5);
+    return el;
+  }));
+}
+
+/* ---------- órdenes ---------- */
+async function send(cmd) {
+  try {
+    await F.addDoc(F.collection(db, "clima", casa, "cmds"), { ...cmd, at: F.serverTimestamp() });
+  } catch (e) {
+    banner("No se pudo enviar la orden. Revisa la conexión y vuelve a intentarlo.", true);
+    throw e;
+  }
+}
+
+function markPending(id, patch) {
+  pending[id] = { ...(pending[id] || {}), ...patch, at: Date.now() };
+  clearTimeout(timers["p" + id]);
+  timers["p" + id] = setTimeout(() => {
+    if (pending[id]) { delete pending[id]; render(); banner("El Airzone no ha confirmado el último cambio. Comprueba el estado.", true); }
+  }, PENDING_MS);
+  render();
+}
+
+function setZone(z, patch) {
+  markPending(z.id, patch);
+  send({ zone: z.id, on: patch.on }).catch(() => { delete pending[z.id]; render(); });
+}
+
+function stepSp(z, delta) {
+  const cur = zoneView(z).sp;
+  const min = z.min ?? 15, max = z.max ?? 30;
+  const sp = Math.min(max, Math.max(min, Math.round((cur + delta) * 2) / 2));
+  markPending(z.id, { sp });
+  clearTimeout(timers["s" + z.id]);
+  timers["s" + z.id] = setTimeout(() => {
+    send({ zone: z.id, setpoint: sp }).catch(() => { delete pending[z.id]; render(); });
+  }, 700);
+}
+
+function changeMode(m) {
+  if (!state || m === state.mode) return;
+  const txt = m === 1 ? "¿Parar la climatización de toda la casa?" : `¿Cambiar toda la casa a modo ${MODOS[m]}?`;
+  if (!confirm(txt)) return;
+  const master = (state.zones.find(z => z.master) || state.zones[0]).id;
+  send({ zone: master, mode: m }).then(() => banner("Cambio de modo enviado…")).catch(() => {});
+}
+
+$("allOff").onclick = () => {
+  if (!state) return;
+  const encendidas = state.zones.filter(z => zoneView(z).on);
+  if (!encendidas.length) { banner("No hay ninguna zona encendida."); return; }
+  if (!confirm(`¿Apagar ${encendidas.length === 1 ? "la zona encendida" : "las " + encendidas.length + " zonas encendidas"}?`)) return;
+  encendidas.forEach(z => setZone(z, { on: false }));
+};
+
+/* ---------- estado que publica el Surface ---------- */
+function onState(snap) {
+  if (!snap.exists()) { state = null; updatedAt = null; refreshSub(); banner("Todavía no hay datos de casa. El Surface tiene que estar encendido con el puente en marcha.", true); return; }
+  const d = snap.data();
+  try { state = JSON.parse(d.json); } catch (e) { state = null; }
+  updatedAt = d.updatedAt && d.updatedAt.toDate ? d.updatedAt.toDate() : null;
+  // Quitar pendientes que ya se ven aplicados
+  if (state && state.zones) for (const z of state.zones) {
+    const p = pending[z.id]; if (!p) continue;
+    const okOn = p.on == null || !!z.on === p.on;
+    const okSp = p.sp == null || Math.abs(z.sp - p.sp) < 0.01;
+    if (okOn && okSp) { delete pending[z.id]; clearTimeout(timers["p" + z.id]); }
+  }
+  render(); refreshSub();
+}
+
+function open(k) {
+  casa = k; setKey(k);
+  if (location.search !== "?casa=" + k) history.replaceState(null, "", shareUrl(k));
+  $("welcome").hidden = true;
+  $("sub").textContent = "Conectando…";
+  F.onSnapshot(F.doc(db, "clima", k), onState, err => {
+    banner(err && err.code === "permission-denied" ? "Este enlace no da acceso. Pide de nuevo el enlace de casa." : "Se ha perdido la conexión. Cierra y vuelve a abrir la app.", true);
+  });
+}
+
+function showWelcome() {
+  $("welcome").hidden = false; $("sub").textContent = "Falta el enlace de casa";
+}
+$("joinBtn").onclick = () => {
+  const k = keyFrom($("joinInput").value);
+  if (!k) { banner("Ese texto no contiene un enlace válido de Clima de casa.", true); return; }
+  banner(null); open(k);
+};
+
+/* ---------- menú ---------- */
+$("menuBtn").onclick = () => {
+  $("copyMsg").textContent = "";
+  $("bridgeInfo").textContent = casa ? `Código de casa: …${casa.slice(-6).toUpperCase()}` : "";
+  $("menu").showModal();
+};
+$("closeMenu").onclick = () => $("menu").close();
+$("copyBtn").onclick = async () => {
+  if (!casa) return;
+  try { await navigator.clipboard.writeText(shareUrl(casa)); $("copyMsg").textContent = "Enlace copiado."; }
+  catch (e) { $("copyMsg").textContent = shareUrl(casa); }
+};
+$("shareBtn").onclick = async () => {
+  if (!casa) return;
+  const url = shareUrl(casa);
+  if (navigator.share) { try { await navigator.share({ title: "Clima de casa", text: "Control de la climatización de casa. Ábrelo en Safari y añádelo a la pantalla de inicio.", url }); } catch (e) {} }
+  else { try { await navigator.clipboard.writeText(url); $("copyMsg").textContent = "Enlace copiado."; } catch (e) { $("copyMsg").textContent = url; } }
+};
+
+/* ---------- arranque ---------- */
+(async () => {
+  try {
+    const [appMod, fsMod] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js")]);
+    F = fsMod;
+    const app = appMod.initializeApp(firebaseConfig, "clima");
+    db = F.getFirestore(app);
+  } catch (e) {
+    $("sub").textContent = "Sin conexión";
+    banner("No se ha podido cargar la app. Comprueba la conexión y vuelve a abrirla.", true);
+    return;
+  }
+  const k = keyFrom(location.search) || keyFrom(location.hash) || (KEY_RE.test(store.get("clima.casa") || "") ? store.get("clima.casa") : null);
+  if (k) open(k); else showWelcome();
+})();
+
+document.addEventListener("visibilitychange", () => { if (!document.hidden) refreshSub(); });
+if ("serviceWorker" in navigator) addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
+</script>
+</body>
+</html>

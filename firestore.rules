@@ -26,5 +26,26 @@ service cloud.firestore {
       allow create, update: if listaValida(lista) && nombreValido()
         && request.resource.data.keys().hasOnly(['name', 'aisle', 'hidden', 'createdAt']);
     }
+
+    // Clima de casa: el puente del Surface publica el estado y recoge las órdenes de la app.
+    // Igual que las listas: solo con el código secreto de casa (va en el enlace).
+    match /clima/{casa} {
+      allow read: if listaValida(casa);
+      allow create, update: if listaValida(casa)
+        && request.resource.data.keys().hasOnly(['json', 'updatedAt'])
+        && request.resource.data.json is string && request.resource.data.json.size() <= 8000
+        && request.resource.data.updatedAt is timestamp;
+    }
+    match /clima/{casa}/cmds/{id} {
+      allow read, delete: if listaValida(casa);
+      allow create: if listaValida(casa)
+        && request.resource.data.keys().hasOnly(['zone', 'on', 'setpoint', 'mode', 'at'])
+        && request.resource.data.zone is int && request.resource.data.zone >= 1 && request.resource.data.zone <= 32
+        && (!('on' in request.resource.data) || request.resource.data.on is bool)
+        && (!('setpoint' in request.resource.data) || (request.resource.data.setpoint is number
+              && request.resource.data.setpoint >= 10 && request.resource.data.setpoint <= 35))
+        && (!('mode' in request.resource.data) || (request.resource.data.mode is int
+              && request.resource.data.mode >= 1 && request.resource.data.mode <= 8));
+    }
   }
 }
