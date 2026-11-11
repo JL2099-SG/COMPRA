@@ -94,7 +94,7 @@ ul li:first-child{border-top:0}
 .thumb{flex:none;width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0;cursor:pointer;overflow:hidden;display:grid;place-items:center;color:var(--muted)}
 .thumb img{width:100%;height:100%;object-fit:cover;display:block}
 .thumb.empty{border-style:dashed;background:transparent;opacity:.7}
-.thumb svg{width:20px;height:20px}
+.thumb svg{width:20px;height:20px;display:block}
 .done .thumb{opacity:.5}
 .photo-box{border-radius:12px;background:var(--bg);border:1px solid var(--line);min-height:120px;display:grid;place-items:center;overflow:hidden;color:var(--muted);text-align:center;padding:0}
 .photo-box img{display:block;width:100%;max-height:55dvh;object-fit:contain}
@@ -123,6 +123,12 @@ ul li:first-child{border-top:0}
 .notice.err{border-color:var(--danger)}
 .linkish{font:inherit;font-size:.9rem;background:none;border:0;color:var(--accent);text-decoration:underline;cursor:pointer;padding:0;justify-self:start}
 
+.name small{display:block;font-size:.82rem;color:var(--muted);line-height:1.25;margin-top:1px}
+.toast{position:fixed;z-index:20;left:50%;transform:translateX(-50%);bottom:calc(84px + env(safe-area-inset-bottom,0px));
+  width:min(528px,calc(100% - 32px));display:flex;align-items:center;gap:12px;background:var(--ink);color:var(--bg);
+  border-radius:12px;padding:10px 10px 10px 14px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.toast span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.toast button{flex:none;font:inherit;font-weight:700;background:transparent;color:inherit;border:1.5px solid currentColor;border-radius:9px;padding:6px 12px;cursor:pointer}
 .bar{position:fixed;left:0;right:0;bottom:0;z-index:5;background:linear-gradient(transparent,var(--bg) 35%);
   padding:20px max(16px,env(safe-area-inset-right,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px))}
 .bar button{display:block;width:100%;max-width:560px;margin:0 auto;font:inherit;font-weight:700;font-size:1.05rem;background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:15px;cursor:pointer;font-variant-numeric:tabular-nums;box-shadow:0 6px 18px rgba(0,0,0,.15)}
@@ -217,6 +223,7 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 </div>
 
 <div class="bar" id="bar" hidden><button id="goShop" type="button"></button></div>
+<div class="toast" id="toast" role="status" aria-live="polite" hidden><span id="toastText"></span><button id="toastUndo" type="button" data-i18n="undo">Deshacer</button></div>
 
 <dialog id="menu" aria-labelledby="menuTitle">
   <div class="card">
@@ -279,6 +286,11 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
       <label for="prodAisle" data-i18n="aisleAria">Pasillo</label>
       <select id="prodAisle" class="search"></select>
     </div>
+    <div class="field" id="prodNoteBox" hidden>
+      <label for="prodNote" data-i18n="noteLabel">Nota para esta compra (opcional)</label>
+      <input id="prodNote" maxlength="60" data-i18n-ph="notePh" placeholder="2 bricks, sin lactosa…" autocomplete="off" enterkeyhint="done">
+      <p class="small" data-i18n="noteHelp">Se borra sola al meterlo en el carro.</p>
+    </div>
     <hr id="prodHr">
     <button class="linkish danger-link" id="prodRemove" type="button" data-i18n="removeFromCatBtn">Quitar del catálogo</button>
   </div>
@@ -338,6 +350,9 @@ const STR = {
     scanNoneShop: "Nada del ticket coincide con lo pendiente de la lista.",
     scanOthers: n => `${n} producto${n > 1 ? "s" : ""} del ticket no estaba${n > 1 ? "n" : ""} en la lista.`,
     scanNew: "nuevo", scanAlready: "ya en la lista",
+    noteLabel: "Nota para esta compra (opcional)", notePh: "2 bricks, sin lactosa…", noteHelp: "Se borra sola al meterlo en el carro.",
+    undo: "Deshacer", removedOne: name => `Quitado: ${name}`, removedN: n => `Quitados ${n} productos`,
+    removedCat: name => `Quitado del catálogo: ${name}`,
     scanOffline: "Sin conexión: el reconocimiento necesita internet.",
     scanQuota: "Por hoy se ha agotado el reconocimiento gratuito. Vuelve a probar mañana o apunta a mano.",
     scanDenied: "El reconocimiento no está disponible ahora mismo (permiso de Firebase). Avisa a quien gestiona la app.",
@@ -399,6 +414,9 @@ const STR = {
     scanNoneShop: "Nothing on the receipt matches what's pending on the list.",
     scanOthers: n => `${n} product${n > 1 ? "s" : ""} on the receipt ${n > 1 ? "weren't" : "wasn't"} on the list.`,
     scanNew: "new", scanAlready: "already on the list",
+    noteLabel: "Note for this shop (optional)", notePh: "2 cartons, lactose-free…", noteHelp: "It's cleared automatically when it goes in the cart.",
+    undo: "Undo", removedOne: name => `Removed: ${name}`, removedN: n => `Removed ${n} products`,
+    removedCat: name => `Removed from catalogue: ${name}`,
     scanOffline: "Offline: recognition needs an internet connection.",
     scanQuota: "Today's free recognition quota is used up. Try again tomorrow or add things by hand.",
     scanDenied: "Recognition isn't available right now (Firebase permission). Tell whoever manages the app.",
@@ -578,17 +596,48 @@ function itemByKey(){ const m = new Map(); for (const it of items) m.set(fold(it
 const matches = (k, e, q) => !q || k.includes(q) || (EN[e.name] && fold(EN[e.name]).includes(q));
 const exactIn = (cat, q) => cat.has(q) || [...cat.values()].some(e => EN[e.name] && fold(EN[e.name]) === q);
 
+/* ---------- deshacer (5 s) ----------
+   Cada borrado guarda una copia de lo borrado; «Deshacer» la vuelve a escribir tal cual
+   (mismo id, misma fecha, misma nota), así recupera también su sitio en la lista. */
+let undoTimer = null, undoFn = null;
+function offerUndo(text, fn){
+  clearTimeout(undoTimer);
+  undoFn = fn; $("toastText").textContent = text; $("toast").hidden = false;
+  undoTimer = setTimeout(hideUndo, 5000);
+}
+function hideUndo(){ clearTimeout(undoTimer); undoTimer = null; undoFn = null; $("toast").hidden = true; }
+$("toastUndo").onclick = () => { const f = undoFn; hideUndo(); if (f && fs && canWrite) f(); };
+const itemData = it => { const { id, ...d } = it; return d; };
+function removeItems(list){
+  if (!fs || !canWrite || !list.length) return;
+  const key = listKey, saved = list.map(it => [it.id, itemData(it)]);
+  const b = F.writeBatch(fs); list.forEach(it => b.delete(ref("items", it.id))); write(b.commit());
+  offerUndo(list.length === 1 ? t("removedOne", label(list[0].name)) : t("removedN", list.length), () => {
+    if (key !== listKey) return;
+    const r = F.writeBatch(fs); saved.forEach(([id, d]) => r.set(ref("items", id), d)); write(r.commit());
+  });
+}
+/* Meter en el carro borra la nota; sacarlo del carro no la recupera. */
+const toCartPatch = () => ({ done: true, note: F.deleteField() });
+
 function mark(entry){
   if (!fs || !canWrite) return;
   const it = itemByKey().get(fold(entry.name));
-  if (it) return write(F.deleteDoc(ref("items", it.id)));
+  if (it) return removeItems([it]);
   write(F.setDoc(ref("items", "p-" + slug(entry.name)), {
     name: entry.name, aisle: entry.aisle, done:false, addedBy: me || null, createdAt: Date.now()
   }));
 }
 function removeFromCatalog(entry){
   if (!fs || !canWrite) return;
-  if (entry.mine) return write(F.deleteDoc(ref("catalogo", entry.docId)));
+  const key = listKey, text = t("removedCat", label(entry.name));
+  if (entry.mine) {
+    const c = extra.find(x => x.id === entry.docId);
+    write(F.deleteDoc(ref("catalogo", entry.docId)));
+    if (c) { const { id, ...d } = c; offerUndo(text, () => { if (key === listKey) write(F.setDoc(ref("catalogo", id), d)); }); }
+    return;
+  }
+  if (entry.base) offerUndo(text, () => { if (key === listKey) write(F.deleteDoc(ref("catalogo", "h-" + slug(entry.name)))); });
   if (entry.base) return write(F.setDoc(ref("catalogo", "h-" + slug(entry.name)), {name: entry.name, hidden:true, createdAt: Date.now()}));
 }
 
@@ -649,10 +698,12 @@ function openProduct(entry){
   prodEntry = {...entry};
   prodMsg("");
   $("prodAisle").value = AISLE_KEYS.has(entry.aisle) ? entry.aisle : "otros";
+  const it = itemByKey().get(fold(entry.name));
+  $("prodNote").value = (it && !it.done && it.note) || "";
   refreshProd();
   if (typeof $("prod").showModal === "function") $("prod").showModal(); else $("prod").setAttribute("open","");
 }
-function closeProduct(){ prodEntry = null; if ($("prod").close) $("prod").close(); else $("prod").removeAttribute("open"); }
+function closeProduct(){ saveNote(); prodEntry = null; if ($("prod").close) $("prod").close(); else $("prod").removeAttribute("open"); }
 function refreshProd(){
   if (!prodEntry) return;
   const e = prodEntry, ph = photoFor(e.name), box = $("prodPhoto");
@@ -664,10 +715,25 @@ function refreshProd(){
   $("prodPhotoDel").hidden = !ph || !canWrite;
   $("prodAisle").disabled = !canWrite;
   $("prodRemove").hidden = $("prodHr").hidden = !(editing && canWrite && !e.adhoc);
+  const it = itemByKey().get(fold(e.name));
+  $("prodNoteBox").hidden = !(it && !it.done && canWrite);
 }
 $("prodClose").onclick = closeProduct;
 $("prod").addEventListener("click", e => { if (e.target === $("prod")) closeProduct(); });
-$("prod").addEventListener("close", () => { prodEntry = null; });
+$("prod").addEventListener("close", () => { saveNote(); prodEntry = null; });
+/* La nota va en el producto de la lista (no en el catálogo): solo existe mientras está pendiente. */
+function saveNote(){
+  const e = prodEntry;
+  if (!e || !fs || !canWrite || !listKey) return;
+  const it = itemByKey().get(fold(e.name));
+  if (!it || it.done) return;
+  const v = $("prodNote").value.trim().replace(/\s+/g, " ").slice(0, 60);
+  if (v === (it.note || "")) return;
+  it.note = v || undefined;
+  write(F.updateDoc(ref("items", it.id), v ? { note: v } : { note: F.deleteField() }));
+}
+$("prodNote").addEventListener("change", saveNote);
+$("prodNote").addEventListener("keydown", ev => { if (ev.key === "Enter") { ev.preventDefault(); $("prodNote").blur(); } });
 $("prodPhotoBtn").onclick = () => $("prodFile").click();
 $("prodFile").addEventListener("change", async () => {
   const f = $("prodFile").files && $("prodFile").files[0];
@@ -845,11 +911,13 @@ $("scanOk").onclick = () => {
   if (!sel.length) return;
   const b = F.writeBatch(fs), now = Date.now(), have = itemByKey();
   sel.forEach((r, i) => {
-    if (s.m === "shop") { const it = have.get(r.k); if (it && !it.done) b.update(ref("items", it.id), { done: true }); return; }
+    if (s.m === "shop") { const it = have.get(r.k); if (it && !it.done) b.update(ref("items", it.id), toCartPatch()); return; }
     if (have.has(r.k)) return;
     const aisle = AISLE_KEYS.has(r.aisle) ? r.aisle : "otros";
     if (r.isNew) b.set(ref("catalogo", "c-" + slug(r.name)), { name: r.name, aisle, createdAt: now });
-    b.set(ref("items", "p-" + slug(r.name)), { name: r.name, aisle, done: false, addedBy: me || null, createdAt: now + i });
+    const doc = { name: r.name, aisle, done: false, addedBy: me || null, createdAt: now + i };
+    if (r.qty) doc.note = r.qty.slice(0, 60);   // la cantidad leída en la foto queda como nota
+    b.set(ref("items", "p-" + slug(r.name)), doc);
   });
   write(b.commit());
   closeScan();
@@ -932,8 +1000,9 @@ function rowFor(it, cat){
   const tk = document.createElement("button");
   tk.className = "tick"; tk.disabled = !canWrite;
   tk.setAttribute("aria-label", (it.done ? t("backToList") : t("toCart")) + label(it.name));
-  tk.onclick = () => write(F.updateDoc(ref("items", it.id), {done: !it.done}));
+  tk.onclick = () => write(F.updateDoc(ref("items", it.id), it.done ? {done: false} : toCartPatch()));
   const n = document.createElement("span"); n.className = "name"; n.textContent = label(it.name);
+  if (it.note && !it.done) { const sm = document.createElement("small"); sm.textContent = it.note; n.append(sm); }
   li.append(tk);
   const ph = photoFor(it.name);
   if (ph || canWrite) {
@@ -950,7 +1019,7 @@ function rowFor(it, cat){
   if (canWrite) {
     const d = document.createElement("button");
     d.className = "del"; d.textContent = "×"; d.setAttribute("aria-label", t("remove") + label(it.name));
-    d.onclick = () => write(F.deleteDoc(ref("items", it.id)));
+    d.onclick = () => removeItems([it]);
     li.append(d);
   }
   return li;
@@ -986,7 +1055,7 @@ function renderShop(box, pending, cart){
         c.append(b);
       } else {
         const y = document.createElement("button"); y.className = "danger"; y.textContent = t("confirmClear", cart.length);
-        y.onclick = () => { confirmClear = false; const b = F.writeBatch(fs); cart.forEach(i => b.delete(ref("items", i.id))); write(b.commit()); };
+        y.onclick = () => { confirmClear = false; removeItems(cart); };
         const n = document.createElement("button"); n.textContent = t("cancel");
         n.onclick = () => { confirmClear = false; render(); };
         c.append(y, n);
@@ -1028,7 +1097,7 @@ function openList(key){
   unsub.forEach(u => u()); unsub = [];
   listKey = key; store.set("compra.lista", key);
   items = []; extra = []; ready = false; canWrite = true; notice("");
-  resetPhotos(false); if (prodEntry) closeProduct();
+  resetPhotos(false); if (prodEntry) closeProduct(); hideUndo();
   $("welcome").hidden = true; $("app").hidden = false; $("menuBtn").hidden = false;
   updateStatus(); render();
   const fail = e => {
@@ -1043,7 +1112,7 @@ function openList(key){
 
 function showWelcome(msg){
   unsub.forEach(u => u()); unsub = []; listKey = null;
-  resetPhotos(false); if (prodEntry) closeProduct();
+  resetPhotos(false); if (prodEntry) closeProduct(); hideUndo();
   $("app").hidden = true; $("bar").hidden = true; $("menuBtn").hidden = true; $("status").hidden = true;
   $("welcome").hidden = false;
   summaryKey = "sharedList"; $("summary").textContent = t(summaryKey);

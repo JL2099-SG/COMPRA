@@ -16,9 +16,11 @@ service cloud.firestore {
     match /listas/{lista}/items/{id} {
       allow read, delete: if listaValida(lista);
       allow create, update: if listaValida(lista) && nombreValido()
-        && request.resource.data.keys().hasOnly(['name', 'aisle', 'done', 'addedBy', 'createdAt'])
+        && request.resource.data.keys().hasOnly(['name', 'aisle', 'done', 'addedBy', 'createdAt', 'note'])
         && request.resource.data.aisle is string && request.resource.data.aisle.size() <= 20
-        && request.resource.data.done is bool;
+        && request.resource.data.done is bool
+        && (!('note' in request.resource.data)
+            || (request.resource.data.note is string && request.resource.data.note.size() <= 60));
     }
 
     match /listas/{lista}/catalogo/{id} {

@@ -26,6 +26,11 @@ Tiempo estimado: 15 minutos. Los pasos 1 a 3 conviene hacerlos desde el ordenado
 - La foto se reduce en el móvil (máx. 60 KB) y se guarda en la propia base de datos; no hace falta Cloud Storage ni plan de pago.
 - **Cada vez que cambie `firestore.rules`**: Firebase → Firestore Database → Reglas → pegar el fichero completo → Publicar. Sin ese paso, las fotos no se guardan.
 
+## Notas y deshacer
+- Nota opcional por producto («2 bricks», «sin lactosa»): se escribe en la ficha del producto, solo mientras está pendiente. En «Comprar» se ve en pequeño bajo el nombre.
+- Al meter el producto en el carro, la nota se borra. Si al marcar con foto se lee una cantidad, se guarda como nota.
+- Al quitar algo (de la lista, del carro o del catálogo) aparece «Deshacer» durante 5 segundos.
+
 ## Reconocer productos con una foto
 - Botón «Foto de una nota o de lo que falta» (modo Marcar): reconoce los productos de una nota, una captura, unos envases o un ticket. Antes de marcar, muestra la lista para confirmarla.
 - Botón «Foto del ticket: tachar lo comprado» (modo Comprar): tacha lo pendiente que aparezca en el ticket.
