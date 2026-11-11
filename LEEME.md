@@ -26,6 +26,14 @@ Tiempo estimado: 15 minutos. Los pasos 1 a 3 conviene hacerlos desde el ordenado
 - La foto se reduce en el móvil (máx. 60 KB) y se guarda en la propia base de datos; no hace falta Cloud Storage ni plan de pago.
 - **Cada vez que cambie `firestore.rules`**: Firebase → Firestore Database → Reglas → pegar el fichero completo → Publicar. Sin ese paso, las fotos no se guardan.
 
+## Reconocer productos con una foto
+- Botón «Foto de una nota o de lo que falta» (modo Marcar): reconoce los productos de una nota, una captura, unos envases o un ticket. Antes de marcar, muestra la lista para confirmarla.
+- Botón «Foto del ticket: tachar lo comprado» (modo Comprar): tacha lo pendiente que aparezca en el ticket.
+- Usa Gemini a través de Firebase AI Logic, protegido con App Check (reCAPTCHA Enterprise). En el repositorio no hay ninguna clave secreta: la clave de sitio de `config.js` es pública por diseño y solo funciona desde `jl2099-sg.github.io`.
+- La foto no se guarda; solo se envía para reconocerla.
+- El modelo se cambia en `config.js` (`aiModel`). Si se agota el cupo gratuito del día, la app lo indica y el resto sigue funcionando.
+- Requisitos en consola: Firebase AI Logic con «Gemini Developer API» activado, y App Check con la app web registrada con reCAPTCHA Enterprise.
+
 ## Notas
 - Funciona sin cobertura: lo marcado se guarda en el móvil y se sincroniza al volver la conexión.
 - Quien tenga el enlace puede ver y cambiar la lista. Si se difundiera, crea una lista nueva desde «Usar otra lista en este móvil».

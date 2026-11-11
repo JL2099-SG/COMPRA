@@ -100,6 +100,18 @@ ul li:first-child{border-top:0}
 .photo-box img{display:block;width:100%;max-height:55dvh;object-fit:contain}
 .photo-box p{padding:16px;margin:0}
 .danger-link{color:var(--danger)}
+.scan-btn{font:inherit;font-weight:700;background:var(--paper);color:var(--accent);border:1.5px dashed var(--accent);border-radius:12px;padding:11px 14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;width:100%}
+.scan-btn svg{width:20px;height:20px}
+.scan-list{display:grid;gap:0;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.scan-list:empty{display:none}
+.scan-row{display:flex;align-items:center;gap:10px;padding:10px 12px;border-top:1px solid var(--line);flex-wrap:wrap}
+.scan-row:first-child{border-top:0}
+.scan-row input[type=checkbox]{width:22px;height:22px;accent-color:var(--accent);flex:none;margin:0}
+.scan-row label{flex:1;min-width:0;overflow-wrap:anywhere}
+.scan-row .qty,.scan-row .tag{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.scan-row .tag{background:var(--accent-soft);color:var(--ink);border-radius:999px;padding:2px 8px}
+.scan-row select{flex-basis:100%;font:inherit;font-size:16px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:7px 10px;margin-left:32px;max-width:calc(100% - 32px)}
+.scan-row.off label{color:var(--muted)}
 .del{flex:none;background:none;border:0;color:var(--muted);font-size:1.4rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
 .cart-sec h2{color:var(--accent)}
 .clear{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -190,6 +202,8 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
         <button id="editBtn" class="ghost" type="button" aria-pressed="false">Editar</button>
       </div>
     </div>
+    <button class="scan-btn" id="scanBtn" type="button" hidden></button>
+    <input id="scanFile" type="file" accept="image/*" hidden>
     <p class="hint" id="hint" data-i18n="hint">Toca lo que falte. Vuelve a tocar para desmarcar.</p>
 
     <form class="add" id="addForm" hidden autocomplete="off">
@@ -239,6 +253,18 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
   </div>
 </dialog>
 
+<dialog id="scan" aria-labelledby="scanTitle">
+  <div class="card">
+    <div class="dlg-head"><h2 id="scanTitle"></h2><button class="x" id="scanClose" type="button" data-i18n-aria="close" aria-label="Cerrar">×</button></div>
+    <p id="scanMsg"></p>
+    <div id="scanList" class="scan-list"></div>
+    <div class="row2" id="scanActions">
+      <button class="secondary" id="scanCancel" type="button" data-i18n="cancel">Cancelar</button>
+      <button class="primary" id="scanOk" type="button"></button>
+    </div>
+  </div>
+</dialog>
+
 <dialog id="prod" aria-labelledby="prodTitle">
   <div class="card">
     <div class="dlg-head"><h2 id="prodTitle"></h2><button class="x" id="prodClose" type="button" data-i18n-aria="close" aria-label="Cerrar">×</button></div>
@@ -259,7 +285,9 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
 </dialog>
 
 <script type="module">
-import { firebaseConfig } from "./config.js";
+import * as CFG from "./config.js";
+const { firebaseConfig } = CFG;
+const AI_ON = !!(CFG.recaptchaSiteKey && CFG.aiModel);
 
 const FB = "https://www.gstatic.com/firebasejs/12.19.0/";
 const $ = id => document.getElementById(id);
@@ -302,6 +330,18 @@ const STR = {
     noPhoto: "Sin foto. Una foto ayuda a quien compra a coger el producto de siempre.", photoLoading: "Cargando foto…",
     photoPreparing: "Preparando la foto…", photoFail: "No he podido usar esa foto. Prueba con otra.",
     confirmRemovePhoto: "¿Quitar la foto de este producto?", seePhoto: "Ver foto: ", addPhoto: "Añadir foto: ",
+    scanMark: "Foto de una nota o de lo que falta", scanShop: "Foto del ticket: tachar lo comprado",
+    scanReading: "Leyendo la foto…", scanTitleMark: "¿Qué marco?", scanTitleShop: "¿Qué tacho como comprado?",
+    scanHelpMark: "Revisa y desmarca lo que no quieras apuntar.", scanHelpShop: "Esto estaba en la lista y aparece en el ticket.",
+    scanOkMark: n => n ? `Marcar ${n}` : "Marcar", scanOkShop: n => n ? `Tachar ${n}` : "Tachar",
+    scanNone: "No he reconocido ningún producto en la foto. Prueba con más luz o más cerca.",
+    scanNoneShop: "Nada del ticket coincide con lo pendiente de la lista.",
+    scanOthers: n => `${n} producto${n > 1 ? "s" : ""} del ticket no estaba${n > 1 ? "n" : ""} en la lista.`,
+    scanNew: "nuevo", scanAlready: "ya en la lista",
+    scanOffline: "Sin conexión: el reconocimiento necesita internet.",
+    scanQuota: "Por hoy se ha agotado el reconocimiento gratuito. Vuelve a probar mañana o apunta a mano.",
+    scanDenied: "El reconocimiento no está disponible ahora mismo (permiso de Firebase). Avisa a quien gestiona la app.",
+    scanFail: "No he podido leer la foto. Inténtalo otra vez.", close2: "Cerrar",
     restore: n => `Recuperar ${n} producto${n > 1 ? "s" : ""} quitado${n > 1 ? "s" : ""}`,
     removeFromCat: "Quitar del catálogo: ", backToList: "Devolver a la lista: ", toCart: "Meter en el carro: ", remove: "Quitar ",
     you: "tú", emptyShop: "No hay nada marcado. Pasa a «Marcar lo que falta» y toca los productos.",
@@ -351,6 +391,18 @@ const STR = {
     noPhoto: "No photo. A photo helps whoever shops pick the usual product.", photoLoading: "Loading photo…",
     photoPreparing: "Preparing the photo…", photoFail: "Couldn't use that photo. Try another one.",
     confirmRemovePhoto: "Remove this product's photo?", seePhoto: "See photo: ", addPhoto: "Add photo: ",
+    scanMark: "Photo of a note or of what's missing", scanShop: "Photo of the receipt: tick off what you bought",
+    scanReading: "Reading the photo…", scanTitleMark: "What should I mark?", scanTitleShop: "What should I tick off?",
+    scanHelpMark: "Check the list and untick anything you don't want.", scanHelpShop: "These were on the list and appear on the receipt.",
+    scanOkMark: n => n ? `Mark ${n}` : "Mark", scanOkShop: n => n ? `Tick off ${n}` : "Tick off",
+    scanNone: "I couldn't recognise any product in the photo. Try with more light or closer.",
+    scanNoneShop: "Nothing on the receipt matches what's pending on the list.",
+    scanOthers: n => `${n} product${n > 1 ? "s" : ""} on the receipt ${n > 1 ? "weren't" : "wasn't"} on the list.`,
+    scanNew: "new", scanAlready: "already on the list",
+    scanOffline: "Offline: recognition needs an internet connection.",
+    scanQuota: "Today's free recognition quota is used up. Try again tomorrow or add things by hand.",
+    scanDenied: "Recognition isn't available right now (Firebase permission). Tell whoever manages the app.",
+    scanFail: "Couldn't read the photo. Please try again.", close2: "Close",
     restore: n => `Restore ${n} removed product${n > 1 ? "s" : ""}`,
     removeFromCat: "Remove from catalogue: ", backToList: "Back to the list: ", toCart: "Put in the cart: ", remove: "Remove ",
     you: "you", emptyShop: "Nothing marked. Go to “Mark what's missing” and tap the products.",
@@ -456,7 +508,7 @@ function shareUrl(key){
 }
 
 /* ---------- estado ---------- */
-let F = null, fs = null, listKey = null, unsub = [];
+let F = null, fs = null, fbApp = null, listKey = null, unsub = [];
 let items = [], extra = [], canWrite = true, confirmClear = false, editing = false, ready = false;
 let mode = store.get("compra.mode") === "shop" ? "shop" : "mark";
 let me = store.get("compra.nombre") || "";
@@ -568,20 +620,21 @@ function resetPhotos(keep){ stalePhotos = keep ? new Map([...stalePhotos, ...pho
 document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && listKey) { resetPhotos(true); render(); refreshProd(); } });
 
 /* Reduce la foto hasta que quepa (la regla admite como máximo 60.000 caracteres). */
-async function shrink(file){
+const PHOTO_STEPS = [[400,.7],[400,.55],[340,.5],[280,.45],[220,.4]];
+async function shrink(file, steps = PHOTO_STEPS, max = 58000){
   const url = URL.createObjectURL(file);
   try {
     const img = new Image(); img.src = url; await img.decode();
     const w = img.naturalWidth, h = img.naturalHeight;
     if (!w || !h) return null;
-    for (const [side, q] of [[400,.7],[400,.55],[340,.5],[280,.45],[220,.4]]) {
+    for (const [side, q] of steps) {
       const s = Math.min(1, side / Math.max(w, h));
       const c = document.createElement("canvas");
       c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
       const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
       g.drawImage(img, 0, 0, c.width, c.height);
       const d = c.toDataURL("image/jpeg", q);
-      if (d.startsWith("data:image/jpeg;base64,") && d.length <= 58000) return d;
+      if (d.startsWith("data:image/jpeg;base64,") && d.length <= max) return d;
     }
     return null;
   } catch (e) { return null; }
@@ -647,6 +700,160 @@ $("prodAisle").addEventListener("change", () => {
   refreshProd();
 });
 $("prodRemove").onclick = () => { if (prodEntry) removeFromCatalog(prodEntry); closeProduct(); };
+
+/* ---------- reconocer productos en una foto (Firebase AI Logic + App Check) ----------
+   Solo con una lista abierta cuyo código sea válido y con permiso de escritura.
+   La foto viaja a Gemini a través de Firebase y no se guarda en ningún sitio. */
+function canScan(){ return AI_ON && !!fs && !!fbApp && !!listKey && KEY_RE.test(listKey) && canWrite; }
+let aiModelP = null;
+function getModel(){
+  if (aiModelP) return aiModelP;
+  aiModelP = (async () => {
+    const [acMod, aiMod] = await Promise.all([import(FB + "firebase-app-check.js"), import(FB + "firebase-ai.js")]);
+    acMod.initializeAppCheck(fbApp, { provider: new acMod.ReCaptchaEnterpriseProvider(CFG.recaptchaSiteKey), isTokenAutoRefreshEnabled: true });
+    const ai = aiMod.getAI(fbApp, { backend: new aiMod.GoogleAIBackend() });
+    const S = aiMod.Schema;
+    const schema = S.object({ properties: {
+      productos: S.array({ items: S.object({
+        properties: { nombre: S.string(), pasillo: S.enumString({ enum: AISLES.map(a => a[0]) }), cantidad: S.string() },
+        optionalProperties: ["cantidad"]
+      }) })
+    } });
+    return aiMod.getGenerativeModel(ai, { model: CFG.aiModel,
+      generationConfig: { responseMimeType: "application/json", responseSchema: schema, temperature: 0 } });
+  })();
+  aiModelP.catch(() => { aiModelP = null; });
+  return aiModelP;
+}
+function scanPrompt(cat){
+  const lines = [...cat.values()].filter(e => !e.hidden).map(e => `${e.name}|${e.aisle}`).join("\n");
+  return `Eres el asistente de la lista de la compra de una familia en España.
+Mira la imagen: puede ser una nota escrita a mano, una captura de un mensaje, una foto de envases o productos, o un ticket de supermercado.
+Devuelve los productos de supermercado que aparecen, sin repetir.
+- Si un producto corresponde a uno del catálogo, usa EXACTAMENTE ese nombre del catálogo y su pasillo.
+- Si no está en el catálogo, dale un nombre genérico corto en español, con mayúscula inicial y sin marca (salvo que la marca sea el nombre habitual del producto).
+- En tickets interpreta las abreviaturas (p. ej. «LECHE ENT. HACEND.» es «Leche») e ignora totales, IVA, descuentos, bolsas, formas de pago y datos de la tienda.
+- cantidad: solo si aparece claramente (p. ej. «2», «1 kg», «x6»).
+- Si no hay productos, devuelve una lista vacía.
+Pasillos: ${AISLES.map(a => `${a[0]} (${a[1]})`).join(", ")}.
+Catálogo (nombre|pasillo):
+${lines}`;
+}
+function scanErr(e){
+  const st = e && e.customErrorData && e.customErrorData.status;
+  if (!navigator.onLine) return t("scanOffline");
+  if (st === 429 || /429|quota|exhausted/i.test(String(e && e.message))) return t("scanQuota");
+  if (st === 401 || st === 403 || (e && e.code === "api-not-enabled") || /app.?check|permission/i.test(String(e && e.message))) return t("scanDenied");
+  return t("scanFail");
+}
+let scanState = null;
+function openScan(){ if (typeof $("scan").showModal === "function") { if (!$("scan").open) $("scan").showModal(); } else $("scan").setAttribute("open",""); }
+function closeScan(){ scanState = null; if ($("scan").close) $("scan").close(); else $("scan").removeAttribute("open"); }
+function scanInfo(text, title){
+  scanState = null;
+  $("scanTitle").textContent = title || "";
+  $("scanMsg").textContent = text; $("scanList").replaceChildren();
+  $("scanActions").hidden = true;
+  openScan();
+}
+$("scanClose").onclick = closeScan; $("scanCancel").onclick = closeScan;
+$("scan").addEventListener("click", e => { if (e.target === $("scan")) closeScan(); });
+$("scan").addEventListener("close", () => { scanState = null; });
+$("scanBtn").onclick = () => { if (canScan()) $("scanFile").click(); };
+$("scanFile").addEventListener("change", async () => {
+  const f = $("scanFile").files && $("scanFile").files[0];
+  $("scanFile").value = "";
+  if (!f || !canScan()) return;
+  const m = mode, key = listKey, title = t(m === "mark" ? "scanTitleMark" : "scanTitleShop");
+  if (!navigator.onLine) return scanInfo(t("scanOffline"), title);
+  scanInfo(t("scanReading"), title);
+  let found;
+  try {
+    const data = await shrink(f, [[1280,.75],[1024,.7],[800,.65]], 1500000);
+    if (!data) throw new Error("image");
+    const model = await getModel();
+    const cat = catalog();
+    const call = model.generateContent([
+      { text: scanPrompt(cat) },
+      { inlineData: { mimeType: "image/jpeg", data: data.slice(data.indexOf(",") + 1) } }
+    ]);
+    const res = await Promise.race([call, new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), 60000))]);
+    const json = JSON.parse(res.response.text());
+    found = Array.isArray(json && json.productos) ? json.productos : [];
+  } catch (e) {
+    console.warn("scan", e);
+    if (listKey === key && $("scan").open) scanInfo(scanErr(e), title);
+    return;
+  }
+  if (listKey !== key || !$("scan").open || !canScan()) return;
+  showScanResult(found, m, title);
+});
+
+function showScanResult(found, m, title){
+  const cat = catalog(), have = itemByKey(), seen = new Set(), rows = [];
+  for (const p of found) {
+    const raw = String((p && p.nombre) || "").trim().replace(/\s+/g, " ");
+    if (!raw) continue;
+    const name0 = cap(raw).slice(0, 60);
+    let k = fold(name0), e = cat.get(k);
+    if (!e) for (const [ck, ce] of cat) if (EN[ce.name] && fold(EN[ce.name]) === k) { e = ce; k = ck; break; }
+    if (seen.has(k)) continue; seen.add(k);
+    const aisle = e ? e.aisle : (AISLE_KEYS.has(p.pasillo) ? p.pasillo : "otros");
+    rows.push({ k, name: e ? e.name : name0, aisle, isNew: !e, qty: p.cantidad ? String(p.cantidad).slice(0, 20) : "", item: have.get(k) });
+  }
+  let list = rows, others = 0;
+  if (m === "shop") { list = rows.filter(r => r.item && !r.item.done); others = rows.length - list.length; }
+  if (!list.length) return scanInfo(m === "shop" && rows.length ? t("scanNoneShop") + " " + t("scanOthers", others) : t("scanNone"), title);
+  scanState = { m, list };
+  $("scanTitle").textContent = title;
+  $("scanMsg").textContent = t(m === "mark" ? "scanHelpMark" : "scanHelpShop") + (others ? " " + t("scanOthers", others) : "");
+  const box = document.createElement("div"); box.className = "scan-list";
+  list.forEach((r, i) => {
+    const already = m === "mark" && !!r.item;
+    r.on = !already;
+    const d = document.createElement("div"); d.className = "scan-row" + (already ? " off" : "");
+    const cb = document.createElement("input"); cb.type = "checkbox"; cb.id = "sc" + i; cb.checked = r.on; cb.disabled = already;
+    cb.onchange = () => { r.on = cb.checked; updateScanOk(); };
+    const lb = document.createElement("label"); lb.htmlFor = cb.id; lb.textContent = label(r.name);
+    d.append(cb, lb);
+    if (r.qty) { const q = document.createElement("span"); q.className = "qty"; q.textContent = r.qty; d.append(q); }
+    if (already) { const tg = document.createElement("span"); tg.className = "qty"; tg.textContent = t("scanAlready"); d.append(tg); }
+    else if (r.isNew && m === "mark") {
+      const tg = document.createElement("span"); tg.className = "tag"; tg.textContent = t("scanNew"); d.append(tg);
+      const sel = document.createElement("select"); sel.setAttribute("aria-label", t("aisleAria") + ": " + r.name);
+      sel.innerHTML = AISLES.map(a => `<option value="${a[0]}">${lang === "en" ? a[2] : a[1]}</option>`).join("");
+      sel.value = r.aisle; sel.onchange = () => { r.aisle = sel.value; };
+      d.append(sel);
+    }
+    box.append(d);
+  });
+  $("scanList").replaceWith(box); box.id = "scanList";
+  $("scanActions").hidden = false;
+  updateScanOk();
+  openScan();
+}
+function updateScanOk(){
+  if (!scanState) return;
+  const n = scanState.list.filter(r => r.on).length;
+  $("scanOk").textContent = t(scanState.m === "mark" ? "scanOkMark" : "scanOkShop", n);
+  $("scanOk").disabled = !n;
+}
+$("scanOk").onclick = () => {
+  const s = scanState;
+  if (!s || !canScan()) return closeScan();
+  const sel = s.list.filter(r => r.on);
+  if (!sel.length) return;
+  const b = F.writeBatch(fs), now = Date.now(), have = itemByKey();
+  sel.forEach((r, i) => {
+    if (s.m === "shop") { const it = have.get(r.k); if (it && !it.done) b.update(ref("items", it.id), { done: true }); return; }
+    if (have.has(r.k)) return;
+    const aisle = AISLE_KEYS.has(r.aisle) ? r.aisle : "otros";
+    if (r.isNew) b.set(ref("catalogo", "c-" + slug(r.name)), { name: r.name, aisle, createdAt: now });
+    b.set(ref("items", "p-" + slug(r.name)), { name: r.name, aisle, done: false, addedBy: me || null, createdAt: now + i });
+  });
+  write(b.commit());
+  closeScan();
+};
 
 $("addForm").addEventListener("submit", e => {
   e.preventDefault();
@@ -806,6 +1013,9 @@ function render(){
   $("editBtn").textContent = editing ? t("done") : t("edit");
   if (mode !== "mark") $("addForm").hidden = true;
   $("bar").hidden = !(mode === "mark" && pending.length && !editing);
+  const scanOn = canScan() && !editing && (mode === "mark" || pending.length > 0);
+  $("scanBtn").hidden = !scanOn;
+  if (scanOn) { $("scanBtn").innerHTML = CAMERA; $("scanBtn").append(t(mode === "mark" ? "scanMark" : "scanShop")); }
   $("goShop").textContent = t("goShop", pending.length);
   const box = document.createElement("div");
   box.style.cssText = "display:flex;flex-direction:column;gap:18px";
@@ -921,7 +1131,7 @@ applyLang();
   try {
     const [appMod, fsMod] = await Promise.all([import(FB + "firebase-app.js"), import(FB + "firebase-firestore.js")]);
     F = fsMod;
-    const app = appMod.initializeApp(firebaseConfig);
+    const app = fbApp = appMod.initializeApp(firebaseConfig);
     try { fs = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) }); }
     catch (e) { fs = F.getFirestore(app); }
   } catch (e) {
