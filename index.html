@@ -77,8 +77,8 @@ section h2 .n{font-variant-numeric:tabular-nums;color:var(--accent)}
 .chip.on::before{content:"";width:6px;height:11px;border:solid currentColor;border-width:0 2.5px 2.5px 0;transform:translateY(-2px) rotate(45deg);flex:none}
 .chip.cart{background:var(--accent-soft);border-color:var(--accent-soft);color:var(--muted);text-decoration:line-through}
 .chip.mine{border-style:dashed}
-.editing .chip{border-color:var(--danger);border-style:dashed}
-.editing .chip::after{content:"×";font-size:1.1rem;line-height:1;color:var(--danger)}
+.editing .chip{border-color:var(--accent);border-style:dashed}
+.editing .chip::after{content:"›";font-size:1.1rem;line-height:1;color:var(--accent)}
 .editing .chip.on::after{color:var(--accent-ink)}
 @media (hover:hover){.chip:not(:disabled):hover{border-color:var(--accent)}}
 
@@ -91,6 +91,15 @@ ul li:first-child{border-top:0}
 .name{flex:1;min-width:0;overflow-wrap:anywhere}
 .done .name{text-decoration:line-through;color:var(--muted)}
 .who{font-size:.8rem;color:var(--muted);white-space:nowrap}
+.thumb{flex:none;width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:var(--bg);padding:0;cursor:pointer;overflow:hidden;display:grid;place-items:center;color:var(--muted)}
+.thumb img{width:100%;height:100%;object-fit:cover;display:block}
+.thumb.empty{border-style:dashed;background:transparent;opacity:.7}
+.thumb svg{width:20px;height:20px}
+.done .thumb{opacity:.5}
+.photo-box{border-radius:12px;background:var(--bg);border:1px solid var(--line);min-height:120px;display:grid;place-items:center;overflow:hidden;color:var(--muted);text-align:center;padding:0}
+.photo-box img{display:block;width:100%;max-height:55dvh;object-fit:contain}
+.photo-box p{padding:16px;margin:0}
+.danger-link{color:var(--danger)}
 .del{flex:none;background:none;border:0;color:var(--muted);font-size:1.4rem;line-height:1;cursor:pointer;padding:4px 8px;border-radius:6px}
 .cart-sec h2{color:var(--accent)}
 .clear{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
@@ -230,6 +239,25 @@ hr{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
   </div>
 </dialog>
 
+<dialog id="prod" aria-labelledby="prodTitle">
+  <div class="card">
+    <div class="dlg-head"><h2 id="prodTitle"></h2><button class="x" id="prodClose" type="button" data-i18n-aria="close" aria-label="Cerrar">×</button></div>
+    <div class="photo-box" id="prodPhoto"></div>
+    <div class="row2">
+      <button class="primary" id="prodPhotoBtn" type="button"></button>
+      <button class="secondary" id="prodPhotoDel" type="button" data-i18n="removePhoto">Quitar foto</button>
+    </div>
+    <input id="prodFile" type="file" accept="image/*" hidden>
+    <p class="small" id="prodMsg" hidden></p>
+    <div class="field">
+      <label for="prodAisle" data-i18n="aisleAria">Pasillo</label>
+      <select id="prodAisle" class="search"></select>
+    </div>
+    <hr id="prodHr">
+    <button class="linkish danger-link" id="prodRemove" type="button" data-i18n="removeFromCatBtn">Quitar del catálogo</button>
+  </div>
+</dialog>
+
 <script type="module">
 import { firebaseConfig } from "./config.js";
 
@@ -269,7 +297,11 @@ const STR = {
     marked: n => n + (n > 1 ? " marcados" : " marcado"),
     notInCatalog: name => `«${name}» no está en el catálogo. Elige pasillo:`,
     noMatch: "No hay nada con ese nombre en el catálogo.",
-    editHelp: "Toca un producto para quitarlo del catálogo. No afecta a la lista de hoy.",
+    editHelp: "Toca un producto para ponerle foto, cambiarle el pasillo o quitarlo del catálogo.",
+    takePhoto: "Hacer o elegir foto", changePhoto: "Cambiar foto", removePhoto: "Quitar foto", removeFromCatBtn: "Quitar del catálogo",
+    noPhoto: "Sin foto. Una foto ayuda a quien compra a coger el producto de siempre.", photoLoading: "Cargando foto…",
+    photoPreparing: "Preparando la foto…", photoFail: "No he podido usar esa foto. Prueba con otra.",
+    confirmRemovePhoto: "¿Quitar la foto de este producto?", seePhoto: "Ver foto: ", addPhoto: "Añadir foto: ",
     restore: n => `Recuperar ${n} producto${n > 1 ? "s" : ""} quitado${n > 1 ? "s" : ""}`,
     removeFromCat: "Quitar del catálogo: ", backToList: "Devolver a la lista: ", toCart: "Meter en el carro: ", remove: "Quitar ",
     you: "tú", emptyShop: "No hay nada marcado. Pasa a «Marcar lo que falta» y toca los productos.",
@@ -314,7 +346,11 @@ const STR = {
     marked: n => n + " marked",
     notInCatalog: name => `“${name}” isn't in the catalogue. Choose an aisle:`,
     noMatch: "Nothing in the catalogue with that name.",
-    editHelp: "Tap a product to remove it from the catalogue. It doesn't affect today's list.",
+    editHelp: "Tap a product to add a photo, change its aisle or remove it from the catalogue.",
+    takePhoto: "Take or choose photo", changePhoto: "Change photo", removePhoto: "Remove photo", removeFromCatBtn: "Remove from catalogue",
+    noPhoto: "No photo. A photo helps whoever shops pick the usual product.", photoLoading: "Loading photo…",
+    photoPreparing: "Preparing the photo…", photoFail: "Couldn't use that photo. Try another one.",
+    confirmRemovePhoto: "Remove this product's photo?", seePhoto: "See photo: ", addPhoto: "Add photo: ",
     restore: n => `Restore ${n} removed product${n > 1 ? "s" : ""}`,
     removeFromCat: "Remove from catalogue: ", backToList: "Back to the list: ", toCart: "Put in the cart: ", remove: "Remove ",
     you: "you", emptyShop: "Nothing marked. Go to “Mark what's missing” and tap the products.",
@@ -441,9 +477,12 @@ function applyLang(){
   if (STANDALONE) $("startText").textContent = t("startTextApp");
   if (listKey) $("codeLine").textContent = t("codeLine", listKey.slice(-6).toUpperCase());
   $("langBtn").textContent = t("langBtn"); $("langBtn").setAttribute("aria-label", t("langAria"));
-  const sel = $("aisle").value;
-  $("aisle").innerHTML = AISLES.map(a => `<option value="${a[0]}">${lang === "en" ? a[2] : a[1]}</option>`).join("");
-  if (sel) $("aisle").value = sel;
+  for (const id of ["aisle", "prodAisle"]) {
+    const sel = $(id).value;
+    $(id).innerHTML = AISLES.map(a => `<option value="${a[0]}">${lang === "en" ? a[2] : a[1]}</option>`).join("");
+    if (sel) $(id).value = sel;
+  }
+  refreshProd();
   if (!listKey) $("summary").textContent = t(summaryKey);
   updateStatus(); render();
 }
@@ -474,6 +513,7 @@ function catalog(){
     const k = fold(c.name), e = map.get(k);
     if (c.hidden) { if (e) e.hidden = true; }
     else if (!e) map.set(k, {name:c.name, aisle: AISLE_KEYS.has(c.aisle) ? c.aisle : "otros", mine:true, docId:c.id});
+    else if (e.base && AISLE_KEYS.has(c.aisle)) e.aisle = c.aisle; // pasillo cambiado a un producto de serie
   }
   for (const it of items) {
     const k = fold(it.name);
@@ -499,6 +539,114 @@ function removeFromCatalog(entry){
   if (entry.mine) return write(F.deleteDoc(ref("catalogo", entry.docId)));
   if (entry.base) return write(F.setDoc(ref("catalogo", "h-" + slug(entry.name)), {name: entry.name, hidden:true, createdAt: Date.now()}));
 }
+
+/* ---------- fotos de referencia ----------
+   Una miniatura por producto en listas/{lista}/fotos/f-<nombre>. Se leen solo cuando hacen falta
+   (lista de la compra u hoja de producto) y se guardan en memoria; al volver a la app se refrescan. */
+const photos = new Map(), photoLoading = new Set();
+let stalePhotos = new Map();
+const photoId = name => "f-" + slug(name);
+function photoFor(name){
+  const k = fold(name);
+  if (photos.has(k)) return photos.get(k);
+  if (fs && listKey && !photoLoading.has(k)) loadPhoto(name);
+  return stalePhotos.has(k) ? stalePhotos.get(k) : undefined;
+}
+async function loadPhoto(name){
+  const k = fold(name), key = listKey;
+  photoLoading.add(k);
+  let v = null;
+  try { const d = await F.getDoc(ref("fotos", photoId(name))); v = d.exists() ? d.data().data || null : null; }
+  catch (e) { v = stalePhotos.get(k) || null; }
+  photoLoading.delete(k);
+  if (key !== listKey) return;
+  const before = photos.has(k) ? photos.get(k) : stalePhotos.get(k);
+  photos.set(k, v);
+  if (before !== v) { render(); refreshProd(); }
+}
+function resetPhotos(keep){ stalePhotos = keep ? new Map([...stalePhotos, ...photos]) : new Map(); photos.clear(); }
+document.addEventListener("visibilitychange", () => { if (document.visibilityState === "visible" && listKey) { resetPhotos(true); render(); refreshProd(); } });
+
+/* Reduce la foto hasta que quepa (la regla admite como máximo 60.000 caracteres). */
+async function shrink(file){
+  const url = URL.createObjectURL(file);
+  try {
+    const img = new Image(); img.src = url; await img.decode();
+    const w = img.naturalWidth, h = img.naturalHeight;
+    if (!w || !h) return null;
+    for (const [side, q] of [[400,.7],[400,.55],[340,.5],[280,.45],[220,.4]]) {
+      const s = Math.min(1, side / Math.max(w, h));
+      const c = document.createElement("canvas");
+      c.width = Math.max(1, Math.round(w * s)); c.height = Math.max(1, Math.round(h * s));
+      const g = c.getContext("2d"); g.fillStyle = "#fff"; g.fillRect(0, 0, c.width, c.height);
+      g.drawImage(img, 0, 0, c.width, c.height);
+      const d = c.toDataURL("image/jpeg", q);
+      if (d.startsWith("data:image/jpeg;base64,") && d.length <= 58000) return d;
+    }
+    return null;
+  } catch (e) { return null; }
+  finally { URL.revokeObjectURL(url); }
+}
+
+/* ---------- hoja de producto: foto, pasillo, quitar del catálogo ---------- */
+let prodEntry = null;
+function prodMsg(text){ $("prodMsg").hidden = !text; $("prodMsg").textContent = text || ""; }
+function openProduct(entry){
+  if (!fs || !listKey) return;
+  prodEntry = {...entry};
+  prodMsg("");
+  $("prodAisle").value = AISLE_KEYS.has(entry.aisle) ? entry.aisle : "otros";
+  refreshProd();
+  if (typeof $("prod").showModal === "function") $("prod").showModal(); else $("prod").setAttribute("open","");
+}
+function closeProduct(){ prodEntry = null; if ($("prod").close) $("prod").close(); else $("prod").removeAttribute("open"); }
+function refreshProd(){
+  if (!prodEntry) return;
+  const e = prodEntry, ph = photoFor(e.name), box = $("prodPhoto");
+  $("prodTitle").textContent = label(e.name);
+  if (ph) { const img = new Image(); img.src = ph; img.alt = label(e.name); box.replaceChildren(img); }
+  else { const p = document.createElement("p"); p.textContent = ph === undefined ? t("photoLoading") : t("noPhoto"); box.replaceChildren(p); }
+  $("prodPhotoBtn").textContent = ph ? t("changePhoto") : t("takePhoto");
+  $("prodPhotoBtn").disabled = !canWrite;
+  $("prodPhotoDel").hidden = !ph || !canWrite;
+  $("prodAisle").disabled = !canWrite;
+  $("prodRemove").hidden = $("prodHr").hidden = !(editing && canWrite && !e.adhoc);
+}
+$("prodClose").onclick = closeProduct;
+$("prod").addEventListener("click", e => { if (e.target === $("prod")) closeProduct(); });
+$("prod").addEventListener("close", () => { prodEntry = null; });
+$("prodPhotoBtn").onclick = () => $("prodFile").click();
+$("prodFile").addEventListener("change", async () => {
+  const f = $("prodFile").files && $("prodFile").files[0];
+  $("prodFile").value = "";
+  const e = prodEntry;
+  if (!f || !e || !fs || !canWrite) return;
+  prodMsg(t("photoPreparing"));
+  const data = await shrink(f);
+  if (!data) return prodMsg(t("photoFail"));
+  prodMsg("");
+  photos.set(fold(e.name), data);
+  write(F.setDoc(ref("fotos", photoId(e.name)), {name: e.name, data, updatedAt: Date.now()}));
+  refreshProd(); render();
+});
+$("prodPhotoDel").onclick = () => {
+  const e = prodEntry;
+  if (!e || !canWrite || !confirm(t("confirmRemovePhoto"))) return;
+  photos.set(fold(e.name), null); stalePhotos.delete(fold(e.name));
+  write(F.deleteDoc(ref("fotos", photoId(e.name))));
+  refreshProd(); render();
+};
+$("prodAisle").addEventListener("change", () => {
+  const e = prodEntry, aisle = $("prodAisle").value;
+  if (!e || !canWrite || !AISLE_KEYS.has(aisle) || aisle === e.aisle) return;
+  const id = e.mine ? e.docId : "c-" + slug(e.name);
+  write(F.setDoc(ref("catalogo", id), {name: e.name, aisle, createdAt: Date.now()}));
+  const it = itemByKey().get(fold(e.name));
+  if (it) write(F.updateDoc(ref("items", it.id), {aisle}));
+  e.aisle = aisle; if (e.adhoc) { e.adhoc = false; e.mine = true; e.docId = id; }
+  refreshProd();
+});
+$("prodRemove").onclick = () => { if (prodEntry) removeFromCatalog(prodEntry); closeProduct(); };
 
 $("addForm").addEventListener("submit", e => {
   e.preventDefault();
@@ -539,9 +687,7 @@ function renderMark(box){
       b.className = "chip" + (it ? (it.done ? " cart" : " on") : "") + (e.mine ? " mine" : "");
       b.textContent = label(e.name); b.disabled = !canWrite || !fs;
       if (editing) {
-        b.disabled = b.disabled || e.adhoc;
-        b.setAttribute("aria-label", t("removeFromCat") + label(e.name));
-        b.onclick = () => removeFromCatalog(e);
+        b.onclick = () => openProduct(e);
       } else {
         b.setAttribute("aria-pressed", it && !it.done ? "true" : "false");
         b.onclick = () => mark(e);
@@ -572,7 +718,8 @@ function renderMark(box){
   }
 }
 
-function row(it){
+const CAMERA = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 8h3l2-3h6l2 3h3v11H4z"/><circle cx="12" cy="13" r="3.5"/></svg>`;
+function rowFor(it, cat){
   const li = document.createElement("li");
   if (it.done) li.className = "done";
   const tk = document.createElement("button");
@@ -580,7 +727,18 @@ function row(it){
   tk.setAttribute("aria-label", (it.done ? t("backToList") : t("toCart")) + label(it.name));
   tk.onclick = () => write(F.updateDoc(ref("items", it.id), {done: !it.done}));
   const n = document.createElement("span"); n.className = "name"; n.textContent = label(it.name);
-  li.append(tk, n);
+  li.append(tk);
+  const ph = photoFor(it.name);
+  if (ph || canWrite) {
+    const pb = document.createElement("button"); pb.type = "button";
+    pb.className = "thumb" + (ph ? "" : " empty");
+    if (ph) { const img = new Image(); img.src = ph; img.alt = ""; pb.append(img); }
+    else pb.innerHTML = CAMERA;
+    pb.setAttribute("aria-label", (ph ? t("seePhoto") : t("addPhoto")) + label(it.name));
+    pb.onclick = () => openProduct(cat.get(fold(it.name)) || {name: it.name, aisle: it.aisle, adhoc: true});
+    li.append(pb);
+  }
+  li.append(n);
   if (it.addedBy) { const w = document.createElement("span"); w.className = "who"; w.textContent = it.addedBy === me ? t("you") : it.addedBy; li.append(w); }
   if (canWrite) {
     const d = document.createElement("button");
@@ -592,6 +750,7 @@ function row(it){
 }
 
 function renderShop(box, pending, cart){
+  const cat = catalog(), row = it => rowFor(it, cat);
   if (!items.length) {
     const e = document.createElement("div"); e.className = "empty";
     e.textContent = t("emptyShop");
@@ -659,6 +818,7 @@ function openList(key){
   unsub.forEach(u => u()); unsub = [];
   listKey = key; store.set("compra.lista", key);
   items = []; extra = []; ready = false; canWrite = true; notice("");
+  resetPhotos(false); if (prodEntry) closeProduct();
   $("welcome").hidden = true; $("app").hidden = false; $("menuBtn").hidden = false;
   updateStatus(); render();
   const fail = e => {
@@ -673,6 +833,7 @@ function openList(key){
 
 function showWelcome(msg){
   unsub.forEach(u => u()); unsub = []; listKey = null;
+  resetPhotos(false); if (prodEntry) closeProduct();
   $("app").hidden = true; $("bar").hidden = true; $("menuBtn").hidden = true; $("status").hidden = true;
   $("welcome").hidden = false;
   summaryKey = "sharedList"; $("summary").textContent = t(summaryKey);

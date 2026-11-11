@@ -20,6 +20,12 @@ Tiempo estimado: 15 minutos. Los pasos 1 a 3 conviene hacerlos desde el ordenado
 2. «Compartir por WhatsApp…» → elige a la persona. El enlace lleva el código secreto de la lista.
 3. En cada iPhone: abrir el enlace en Safari → Compartir → «Añadir a pantalla de inicio». Si al abrir desde el icono pide el enlace, pegarlo una vez.
 
+## Fotos de los productos
+- En «Comprar», el cuadrito junto a cada producto abre su ficha: hacer o elegir una foto, cambiarla o quitarla, y cambiar el pasillo.
+- En «Marcar lo que falta» → «Editar», al tocar un producto se abre la misma ficha, con la opción «Quitar del catálogo».
+- La foto se reduce en el móvil (máx. 60 KB) y se guarda en la propia base de datos; no hace falta Cloud Storage ni plan de pago.
+- **Cada vez que cambie `firestore.rules`**: Firebase → Firestore Database → Reglas → pegar el fichero completo → Publicar. Sin ese paso, las fotos no se guardan.
+
 ## Notas
 - Funciona sin cobertura: lo marcado se guarda en el móvil y se sincroniza al volver la conexión.
 - Quien tenga el enlace puede ver y cambiar la lista. Si se difundiera, crea una lista nueva desde «Usar otra lista en este móvil».
