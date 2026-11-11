@@ -152,7 +152,8 @@ const ZONAS = { 1: "Salón", 2: "Dormitorio principal", 3: "Irene", 4: "Piano", 
 const MODOS = { 3: "Calor", 2: "Frío", 4: "Ventilar", 5: "Seco", 1: "Parado" };
 const KEY_RE = /^[A-Za-z0-9]{20,64}$/;
 const STALE_S = 150;          // sin noticias del puente durante más de esto = aviso
-const PENDING_MS = 25000;     // tiempo máximo esperando a que el Airzone confirme una orden
+const PENDING_MS = 60000;     // tiempo máximo esperando a que el Airzone confirme una orden
+const SETTLE_MS = 20000;      // si el estado publicado es 20 s posterior a la orden y no coincide, manda el estado
 
 let F, db, casa, state = null, updatedAt = null;
 const pending = {};           // zona -> { on?, sp?, at }
@@ -262,7 +263,7 @@ function markPending(id, patch) {
   pending[id] = { ...(pending[id] || {}), ...patch, at: Date.now() };
   clearTimeout(timers["p" + id]);
   timers["p" + id] = setTimeout(() => {
-    if (pending[id]) { delete pending[id]; render(); banner("El Airzone no ha confirmado el último cambio. Comprueba el estado.", true); }
+    if (pending[id]) { delete pending[id]; render(); banner("El último cambio no se ha confirmado. Se muestra el estado real del Airzone.", true); }
   }, PENDING_MS);
   render();
 }
@@ -310,7 +311,8 @@ function onState(snap) {
     const p = pending[z.id]; if (!p) continue;
     const okOn = p.on == null || !!z.on === p.on;
     const okSp = p.sp == null || Math.abs(z.sp - p.sp) < 0.01;
-    if (okOn && okSp) { delete pending[z.id]; clearTimeout(timers["p" + z.id]); }
+    const settled = updatedAt && updatedAt.getTime() > p.at + SETTLE_MS;
+    if ((okOn && okSp) || settled) { delete pending[z.id]; clearTimeout(timers["p" + z.id]); }
   }
   render(); refreshSub();
 }

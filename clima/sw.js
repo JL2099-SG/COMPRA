@@ -1,5 +1,5 @@
 // Clima de casa: guarda la interfaz para que abra rápido. Los datos (Firebase) siempre van en directo.
-const CACHE = "clima-v1";
+const CACHE = "clima-v2";
 const SHELL = ["./", "index.html", "../config.js", "manifest.webmanifest", "icons/icon-180.png", "icons/icon-192.png", "icons/icon-512.png"];
 const LIB_HOSTS = ["www.gstatic.com", "fonts.googleapis.com", "fonts.gstatic.com"];
 
